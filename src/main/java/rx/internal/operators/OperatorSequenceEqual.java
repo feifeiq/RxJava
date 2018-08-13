@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,22 +28,14 @@ import rx.internal.util.UtilityFunctions;
 public final class OperatorSequenceEqual {
 
     /** NotificationLite doesn't work as zip uses it. */
-    static final Object LOCAL_ONCOMPLETED = new Object();
+    static final Object LOCAL_ON_COMPLETED = new Object();
 
     private OperatorSequenceEqual() {
         throw new IllegalStateException("No instances!");
     }
 
     static <T> Observable<Object> materializeLite(Observable<T> source) {
-        return concat(
-                source.map(new Func1<T, Object>() {
-
-                    @Override
-                    public Object call(T t1) {
-                        return t1;
-                    }
-
-                }), just(LOCAL_ONCOMPLETED));
+        return concat(source, just(LOCAL_ON_COMPLETED));
     }
 
     /**
@@ -73,8 +65,8 @@ public final class OperatorSequenceEqual {
                     @Override
                     @SuppressWarnings("unchecked")
                     public Boolean call(Object t1, Object t2) {
-                        boolean c1 = t1 == LOCAL_ONCOMPLETED;
-                        boolean c2 = t2 == LOCAL_ONCOMPLETED;
+                        boolean c1 = t1 == LOCAL_ON_COMPLETED;
+                        boolean c2 = t2 == LOCAL_ON_COMPLETED;
                         if (c1 && c2) {
                             return true;
                         }

@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +21,7 @@ import rx.*;
 import rx.Observable.OnSubscribe;
 
 /**
- * Emit ints from start to end inclusive.
+ * Emit integers from start to end inclusive.
  */
 public final class OnSubscribeRange implements OnSubscribe<Integer> {
 
@@ -41,7 +41,7 @@ public final class OnSubscribeRange implements OnSubscribe<Integer> {
     static final class RangeProducer extends AtomicLong implements Producer {
         /** */
         private static final long serialVersionUID = 4114392207069098388L;
-        
+
         private final Subscriber<? super Integer> childSubscriber;
         private final int endOfRange;
         private long currentIndex;
@@ -60,12 +60,12 @@ public final class OnSubscribeRange implements OnSubscribe<Integer> {
             }
             if (requestedAmount == Long.MAX_VALUE && compareAndSet(0L, Long.MAX_VALUE)) {
                 // fast-path without backpressure
-                fastpath();
+                fastPath();
             } else if (requestedAmount > 0L) {
                 long c = BackpressureUtils.getAndAddRequest(this, requestedAmount);
                 if (c == 0L) {
                     // backpressure is requested
-                    slowpath(requestedAmount);
+                    slowPath(requestedAmount);
                 }
             }
         }
@@ -73,37 +73,37 @@ public final class OnSubscribeRange implements OnSubscribe<Integer> {
         /**
          * Emits as many values as requested or remaining from the range, whichever is smaller.
          */
-        void slowpath(long requestedAmount) {
+        void slowPath(long requestedAmount) {
             long emitted = 0L;
             long endIndex = endOfRange + 1L;
             long index = currentIndex;
-            
+
             final Subscriber<? super Integer> childSubscriber = this.childSubscriber;
-            
+
             for (;;) {
-                
+
                 while (emitted != requestedAmount && index != endIndex) {
                     if (childSubscriber.isUnsubscribed()) {
                         return;
                     }
-                    
+
                     childSubscriber.onNext((int)index);
-                    
+
                     index++;
                     emitted++;
                 }
-                
+
                 if (childSubscriber.isUnsubscribed()) {
                     return;
                 }
-                
+
                 if (index == endIndex) {
                     childSubscriber.onCompleted();
                     return;
                 }
-                
+
                 requestedAmount = get();
-                
+
                 if (requestedAmount == emitted) {
                     currentIndex = index;
                     requestedAmount = addAndGet(-emitted);
@@ -118,7 +118,7 @@ public final class OnSubscribeRange implements OnSubscribe<Integer> {
         /**
          * Emits all remaining values without decrementing the requested amount.
          */
-        void fastpath() {
+        void fastPath() {
             final long endIndex = this.endOfRange + 1L;
             final Subscriber<? super Integer> childSubscriber = this.childSubscriber;
             for (long index = currentIndex; index != endIndex; index++) {

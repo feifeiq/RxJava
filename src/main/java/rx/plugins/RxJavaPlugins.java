@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,6 @@ package rx.plugins;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import rx.annotations.Experimental;
 
 /**
  * Registry for plugin implementations that allows global override and handles the retrieval of correct
@@ -28,14 +27,14 @@ import rx.annotations.Experimental;
  * property names)</li>
  * <li>default implementation</li>
  * </ol>
- * <p>In addition to the {@code rxjava.plugin.[simple classname].implementation} system properties,
+ * <p>In addition to the {@code rxjava.plugin.[simple class name].implementation} system properties,
  * you can define two system property:<br>
  * <pre><code>
  * rxjava.plugin.[index].class}
  * rxjava.plugin.[index].impl}
  * </code></pre>
- * 
- * Where the {@code .class} property contains the simple classname from above and the {@code .impl}
+ *
+ * Where the {@code .class} property contains the simple class name from above and the {@code .impl}
  * contains the fully qualified name of the implementation class. The {@code [index]} can be
  * any short string or number of your choosing. For example, you can now define a custom
  * {@code RxJavaErrorHandler} via two system property:
@@ -43,9 +42,9 @@ import rx.annotations.Experimental;
  * rxjava.plugin.1.class=RxJavaErrorHandler
  * rxjava.plugin.1.impl=some.package.MyRxJavaErrorHandler
  * </code></pre>
- * 
+ *
  * @see <a href="https://github.com/ReactiveX/RxJava/wiki/Plugins">RxJava Wiki: Plugins</a>
- * 
+ *
  * Use the {@link RxJavaHooks} features instead which let's you change individual
  * handlers at runtime.
  */
@@ -65,7 +64,7 @@ public class RxJavaPlugins {
      * Retrieves the single {@code RxJavaPlugins} instance.
      *
      * @return the single {@code RxJavaPlugins} instance
-     * 
+     *
      * @deprecated use the static methods of {@link RxJavaHooks}.
      */
     @Deprecated
@@ -76,17 +75,17 @@ public class RxJavaPlugins {
     /* package accessible for unit tests */RxJavaPlugins() {
         // nothing to do
     }
-    
+
     /**
      * Reset {@code RxJavaPlugins} instance
      * <p>
-     * This API is experimental. Resetting the plugins is dangerous 
-     * during application runtime and also bad code could invoke it in 
+     * This API is experimental. Resetting the plugins is dangerous
+     * during application runtime and also bad code could invoke it in
      * the middle of an application life-cycle and really break applications
      * if not used cautiously. For more detailed discussions:
-     * * @see <a href="https://github.com/ReactiveX/RxJava/issues/2297">Make RxJavaPlugins.reset() public</a>
+     * @see <a href="https://github.com/ReactiveX/RxJava/issues/2297">Make RxJavaPlugins.reset() public</a>
+     * @since 1.3
      */
-    @Experimental
     public void reset() {
         INSTANCE.errorHandler.set(null);
         INSTANCE.observableExecutionHook.set(null);
@@ -100,15 +99,15 @@ public class RxJavaPlugins {
      * {@link RxJavaPlugins} class header.
      * <p>
      * Override the default by calling {@link #registerErrorHandler(RxJavaErrorHandler)} or by setting the
-     * property {@code rxjava.plugin.RxJavaErrorHandler.implementation} with the full classname to load.
+     * property {@code rxjava.plugin.RxJavaErrorHandler.implementation} with the full class name to load.
      * @return {@link RxJavaErrorHandler} implementation to use
      */
     public RxJavaErrorHandler getErrorHandler() {
         if (errorHandler.get() == null) {
             // check for an implementation from System.getProperty first
-            Object impl = getPluginImplementationViaProperty(RxJavaErrorHandler.class, System.getProperties());
+            Object impl = getPluginImplementationViaProperty(RxJavaErrorHandler.class, getSystemPropertiesSafe());
             if (impl == null) {
-                // nothing set via properties so initialize with default 
+                // nothing set via properties so initialize with default
                 errorHandler.compareAndSet(null, DEFAULT_ERROR_HANDLER);
                 // we don't return from here but call get() again in case of thread-race so the winner will always get returned
             } else {
@@ -122,7 +121,7 @@ public class RxJavaPlugins {
     /**
      * Registers an {@link RxJavaErrorHandler} implementation as a global override of any injected or default
      * implementations.
-     * 
+     *
      * @param impl
      *            {@link RxJavaErrorHandler} implementation
      * @throws IllegalStateException
@@ -141,16 +140,16 @@ public class RxJavaPlugins {
      * <p>
      * Override the default by calling {@link #registerObservableExecutionHook(RxJavaObservableExecutionHook)}
      * or by setting the property {@code rxjava.plugin.RxJavaObservableExecutionHook.implementation} with the
-     * full classname to load.
-     * 
+     * full class name to load.
+     *
      * @return {@link RxJavaObservableExecutionHook} implementation to use
      */
     public RxJavaObservableExecutionHook getObservableExecutionHook() {
         if (observableExecutionHook.get() == null) {
             // check for an implementation from System.getProperty first
-            Object impl = getPluginImplementationViaProperty(RxJavaObservableExecutionHook.class, System.getProperties());
+            Object impl = getPluginImplementationViaProperty(RxJavaObservableExecutionHook.class, getSystemPropertiesSafe());
             if (impl == null) {
-                // nothing set via properties so initialize with default 
+                // nothing set via properties so initialize with default
                 observableExecutionHook.compareAndSet(null, RxJavaObservableExecutionHookDefault.getInstance());
                 // we don't return from here but call get() again in case of thread-race so the winner will always get returned
             } else {
@@ -164,7 +163,7 @@ public class RxJavaPlugins {
     /**
      * Register an {@link RxJavaObservableExecutionHook} implementation as a global override of any injected or
      * default implementations.
-     * 
+     *
      * @param impl
      *            {@link RxJavaObservableExecutionHook} implementation
      * @throws IllegalStateException
@@ -183,14 +182,14 @@ public class RxJavaPlugins {
      * <p>
      * Override the default by calling {@link #registerSingleExecutionHook(RxJavaSingleExecutionHook)}
      * or by setting the property {@code rxjava.plugin.RxJavaSingleExecutionHook.implementation} with the
-     * full classname to load.
+     * full class name to load.
      *
      * @return {@link RxJavaSingleExecutionHook} implementation to use
      */
     public RxJavaSingleExecutionHook getSingleExecutionHook() {
         if (singleExecutionHook.get() == null) {
             // check for an implementation from System.getProperty first
-            Object impl = getPluginImplementationViaProperty(RxJavaSingleExecutionHook.class, System.getProperties());
+            Object impl = getPluginImplementationViaProperty(RxJavaSingleExecutionHook.class, getSystemPropertiesSafe());
             if (impl == null) {
                 // nothing set via properties so initialize with default
                 singleExecutionHook.compareAndSet(null, RxJavaSingleExecutionHookDefault.getInstance());
@@ -225,16 +224,15 @@ public class RxJavaPlugins {
      * <p>
      * Override the default by calling {@link #registerCompletableExecutionHook(RxJavaCompletableExecutionHook)}
      * or by setting the property {@code rxjava.plugin.RxJavaCompletableExecutionHook.implementation} with the
-     * full classname to load.
+     * full class name to load.
      *
      * @return {@link RxJavaCompletableExecutionHook} implementation to use
-     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical with the release number)
+     * @since 1.3
      */
-    @Experimental
     public RxJavaCompletableExecutionHook getCompletableExecutionHook() {
         if (completableExecutionHook.get() == null) {
             // check for an implementation from System.getProperty first
-            Object impl = getPluginImplementationViaProperty(RxJavaCompletableExecutionHook.class, System.getProperties());
+            Object impl = getPluginImplementationViaProperty(RxJavaCompletableExecutionHook.class, getSystemPropertiesSafe());
             if (impl == null) {
                 // nothing set via properties so initialize with default
                 completableExecutionHook.compareAndSet(null, new RxJavaCompletableExecutionHook() { });
@@ -256,12 +254,24 @@ public class RxJavaPlugins {
      * @throws IllegalStateException
      *             if called more than once or after the default was initialized (if usage occurs before trying
      *             to register)
-     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical with the release number)
+     * @since 1.3
      */
-    @Experimental
     public void registerCompletableExecutionHook(RxJavaCompletableExecutionHook impl) {
         if (!completableExecutionHook.compareAndSet(null, impl)) {
             throw new IllegalStateException("Another strategy was already registered: " + singleExecutionHook.get());
+        }
+    }
+
+    /**
+     * A security manager may prevent accessing the System properties entirely,
+     * therefore, the SecurityException is turned into an empty properties.
+     * @return the Properties to use for looking up settings
+     */
+    /* test */ static Properties getSystemPropertiesSafe() {
+        try {
+            return System.getProperties();
+        } catch (SecurityException ex) {
+            return new Properties();
         }
     }
 
@@ -269,7 +279,7 @@ public class RxJavaPlugins {
         // Make a defensive clone because traversal may fail with ConcurrentModificationException
         // if the properties get changed by something outside RxJava.
         Properties props = (Properties)propsIn.clone();
-        
+
         final String classSimpleName = pluginClass.getSimpleName();
         /*
          * Check system properties for plugin class.
@@ -277,35 +287,42 @@ public class RxJavaPlugins {
          * This will only happen during system startup thus it's okay to use the synchronized
          * System.getProperties as it will never get called in normal operations.
          */
-        
+
         String pluginPrefix = "rxjava.plugin.";
-        
+
         String defaultKey = pluginPrefix + classSimpleName + ".implementation";
         String implementingClass = props.getProperty(defaultKey);
 
         if (implementingClass == null) {
             String classSuffix = ".class";
             String implSuffix = ".impl";
-    
-            for (Map.Entry<Object, Object> e : props.entrySet()) {
-                String key = e.getKey().toString();
-                if (key.startsWith(pluginPrefix) && key.endsWith(classSuffix)) {
-                    String value = e.getValue().toString();
-                    
-                    if (classSimpleName.equals(value)) {
-                        String index = key.substring(0, key.length() - classSuffix.length()).substring(pluginPrefix.length());
-                        
-                        String implKey = pluginPrefix + index + implSuffix;
-                        
-                        implementingClass = props.getProperty(implKey);
-                        
-                        if (implementingClass == null) {
-                            throw new IllegalStateException("Implementing class declaration for " + classSimpleName + " missing: " + implKey);
+
+            try {
+                for (Map.Entry<Object, Object> e : props.entrySet()) {
+                    String key = e.getKey().toString();
+                    if (key.startsWith(pluginPrefix) && key.endsWith(classSuffix)) {
+                        String value = e.getValue().toString();
+
+                        if (classSimpleName.equals(value)) {
+                            String index = key.substring(0, key.length() - classSuffix.length()).substring(pluginPrefix.length());
+
+                            String implKey = pluginPrefix + index + implSuffix;
+
+                            implementingClass = props.getProperty(implKey);
+
+                            if (implementingClass == null) {
+                                throw new IllegalStateException("Implementing class declaration for " + classSimpleName + " missing: " + implKey);
+                            }
+
+                            break;
                         }
-                        
-                        break;
                     }
                 }
+            } catch (SecurityException ex) {
+                // https://github.com/ReactiveX/RxJava/issues/5819
+                // We don't seem to have access to all properties.
+                // At least print the exception to the console.
+                ex.printStackTrace();
             }
         }
 
@@ -334,7 +351,7 @@ public class RxJavaPlugins {
      * in the {@link RxJavaPlugins} class header.
      * <p>
      * Override the default by calling {@link #registerSchedulersHook(RxJavaSchedulersHook)} or by setting
-     * the property {@code rxjava.plugin.RxJavaSchedulersHook.implementation} with the full classname to
+     * the property {@code rxjava.plugin.RxJavaSchedulersHook.implementation} with the full class name to
      * load.
      *
      * @return the {@link RxJavaSchedulersHook} implementation in use
@@ -342,7 +359,7 @@ public class RxJavaPlugins {
     public RxJavaSchedulersHook getSchedulersHook() {
         if (schedulersHook.get() == null) {
             // check for an implementation from System.getProperty first
-            Object impl = getPluginImplementationViaProperty(RxJavaSchedulersHook.class, System.getProperties());
+            Object impl = getPluginImplementationViaProperty(RxJavaSchedulersHook.class, getSystemPropertiesSafe());
             if (impl == null) {
                 // nothing set via properties so initialize with default
                 schedulersHook.compareAndSet(null, RxJavaSchedulersHook.getDefaultInstance());

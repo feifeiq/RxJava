@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,7 @@ import rx.internal.operators.NotificationLite;
  * <li>Adding notifications to a queue if another thread is already emitting</li>
  * <li>Not holding any locks or blocking any threads while emitting</li>
  * </ul>
- * 
+ *
  * @param <T>
  *          the type of items expected to be observed by the {@code Observer}
  */
@@ -41,7 +41,6 @@ public class SerializedObserver<T> implements Observer<T> {
     private volatile boolean terminated;
     /** If not null, it indicates more work. */
     private FastList queue;
-    private final NotificationLite<T> nl = NotificationLite.instance();
 
     static final class FastList {
         Object[] array;
@@ -83,7 +82,7 @@ public class SerializedObserver<T> implements Observer<T> {
                     list = new FastList();
                     queue = list;
                 }
-                list.add(nl.next(t));
+                list.add(NotificationLite.next(t));
                 return;
             }
             emitting = true;
@@ -110,7 +109,7 @@ public class SerializedObserver<T> implements Observer<T> {
                     break;
                 }
                 try {
-                    if (nl.accept(actual, o)) {
+                    if (NotificationLite.accept(actual, o)) {
                         terminated = true;
                         return;
                     }
@@ -123,7 +122,7 @@ public class SerializedObserver<T> implements Observer<T> {
             }
         }
     }
-    
+
     @Override
     public void onError(final Throwable e) {
         Exceptions.throwIfFatal(e);
@@ -136,16 +135,16 @@ public class SerializedObserver<T> implements Observer<T> {
             }
             terminated = true;
             if (emitting) {
-                /* 
-                 * FIXME: generally, errors jump the queue but this wasn't true 
-                 * for SerializedObserver and may break existing expectations. 
+                /*
+                 * FIXME: generally, errors jump the queue but this wasn't true
+                 * for SerializedObserver and may break existing expectations.
                  */
                 FastList list = queue;
                 if (list == null) {
                     list = new FastList();
                     queue = list;
                 }
-                list.add(nl.error(e));
+                list.add(NotificationLite.error(e));
                 return;
             }
             emitting = true;
@@ -169,7 +168,7 @@ public class SerializedObserver<T> implements Observer<T> {
                     list = new FastList();
                     queue = list;
                 }
-                list.add(nl.completed());
+                list.add(NotificationLite.completed());
                 return;
             }
             emitting = true;

@@ -37,7 +37,7 @@ import rx.observers.*;
  * Note that this operation only produces <strong>non-overlapping chunks</strong>. At all times there is
  * exactly one buffer actively storing values.
  * </p>
- * 
+ *
  * @param <T> the buffered value type
  * @param <TClosing> the value type of the Observable signaling the end of each buffer
  */
@@ -82,34 +82,34 @@ public final class OperatorBufferWithSingleObservable<T, TClosing> implements Op
             Exceptions.throwOrReport(t, child);
             return Subscribers.empty();
         }
-        final BufferingSubscriber bsub = new BufferingSubscriber(new SerializedSubscriber<List<T>>(child));
+        final BufferingSubscriber s = new BufferingSubscriber(new SerializedSubscriber<List<T>>(child));
 
         Subscriber<TClosing> closingSubscriber = new Subscriber<TClosing>() {
 
             @Override
             public void onNext(TClosing t) {
-                bsub.emit();
+                s.emit();
             }
 
             @Override
             public void onError(Throwable e) {
-                bsub.onError(e);
+                s.onError(e);
             }
 
             @Override
             public void onCompleted() {
-                bsub.onCompleted();
+                s.onCompleted();
             }
         };
 
         child.add(closingSubscriber);
-        child.add(bsub);
-        
+        child.add(s);
+
         closing.unsafeSubscribe(closingSubscriber);
-        
-        return bsub;
+
+        return s;
     }
-    
+
     final class BufferingSubscriber extends Subscriber<T> {
         final Subscriber<? super List<T>> child;
         /** Guarded by this. */
@@ -163,7 +163,7 @@ public final class OperatorBufferWithSingleObservable<T, TClosing> implements Op
             child.onCompleted();
             unsubscribe();
         }
-        
+
         void emit() {
             List<T> toEmit;
             synchronized (this) {
@@ -187,5 +187,5 @@ public final class OperatorBufferWithSingleObservable<T, TClosing> implements Op
             }
         }
     }
-    
+
 }

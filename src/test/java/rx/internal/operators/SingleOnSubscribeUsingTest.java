@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,7 +33,7 @@ public class SingleOnSubscribeUsingTest {
 
     private interface Resource {
         String getTextFromWeb();
-        
+
         void dispose();
     }
 
@@ -273,7 +273,7 @@ public class SingleOnSubscribeUsingTest {
         final List<String> events = new ArrayList<String>();
         Func0<Resource> resourceFactory = createResourceFactory(events);
         final Action1<String> completion = createOnSuccessAction(events);
-        final Action0 unsub =createUnsubAction(events);
+        final Action0 unsub = createUnsubAction(events);
 
         Func1<Resource, Single<String>> observableFactory = new Func1<Resource, Single<String>>() {
             @Override
@@ -289,7 +289,7 @@ public class SingleOnSubscribeUsingTest {
                 .doOnSuccess(completion);
         observable.subscribe(observer);
 
-        assertEquals(Arrays.asList("disposed", "completed", "unsub"), events);
+        assertEquals(Arrays.asList("disposed", "completed"/*, "unsub"*/), events);
 
     }
 
@@ -298,7 +298,7 @@ public class SingleOnSubscribeUsingTest {
         final List<String> events = new ArrayList<String>();
         Func0<Resource> resourceFactory = createResourceFactory(events);
         final Action1<String> completion = createOnSuccessAction(events);
-        final Action0 unsub =createUnsubAction(events);
+        final Action0 unsub = createUnsubAction(events);
 
         Func1<Resource, Single<String>> observableFactory = new Func1<Resource, Single<String>>() {
             @Override
@@ -314,19 +314,19 @@ public class SingleOnSubscribeUsingTest {
                 .doOnSuccess(completion);
         observable.subscribe(observer);
 
-        assertEquals(Arrays.asList("completed", "unsub", "disposed"), events);
+        assertEquals(Arrays.asList("completed", /* "unsub",*/ "disposed"), events);
 
     }
 
-    
-    
+
+
     @Test
     public void disposesEagerlyBeforeError() {
         final List<String> events = new ArrayList<String>();
         Func0<Resource> resourceFactory = createResourceFactory(events);
         final Action1<Throwable> onError = createOnErrorAction(events);
         final Action0 unsub = createUnsubAction(events);
-        
+
         Func1<Resource, Single<String>> observableFactory = new Func1<Resource, Single<String>>() {
             @Override
             public Single<String> call(Resource resource) {
@@ -341,17 +341,17 @@ public class SingleOnSubscribeUsingTest {
                 .doOnError(onError);
         observable.subscribe(observer);
 
-        assertEquals(Arrays.asList("disposed", "error", "unsub"), events);
+        assertEquals(Arrays.asList("disposed", "error"/*, "unsub"*/), events);
 
     }
-    
+
     @Test
     public void doesNotDisposesEagerlyBeforeError() {
         final List<String> events = new ArrayList<String>();
         Func0<Resource> resourceFactory = createResourceFactory(events);
         final Action1<Throwable> onError = createOnErrorAction(events);
         final Action0 unsub = createUnsubAction(events);
-        
+
         Func1<Resource, Single<String>> observableFactory = new Func1<Resource, Single<String>>() {
             @Override
             public Single<String> call(Resource resource) {
@@ -366,7 +366,7 @@ public class SingleOnSubscribeUsingTest {
                 .doOnError(onError);
         observable.subscribe(observer);
 
-        assertEquals(Arrays.asList("error", "unsub", "disposed"), events);
+        assertEquals(Arrays.asList("error", /* "unsub",*/ "disposed"), events);
     }
 
     private static Action0 createUnsubAction(final List<String> events) {
@@ -406,7 +406,7 @@ public class SingleOnSubscribeUsingTest {
             }
         };
     }
-    
+
     private static Action1<String> createOnSuccessAction(final List<String> events) {
         return new Action1<String>() {
             @Override
@@ -431,7 +431,7 @@ public class SingleOnSubscribeUsingTest {
 
             Single.using(null, observableFactory,
                     new DisposeAction(), false);
-            
+
             fail("Failed to throw NullPointerException");
         } catch (NullPointerException ex) {
             assertEquals("resourceFactory is null", ex.getMessage());
@@ -453,7 +453,7 @@ public class SingleOnSubscribeUsingTest {
 
             Single.using(resourceFactory, null,
                     new DisposeAction(), false);
-            
+
             fail("Failed to throw NullPointerException");
         } catch (NullPointerException ex) {
             assertEquals("singleFactory is null", ex.getMessage());
@@ -482,7 +482,7 @@ public class SingleOnSubscribeUsingTest {
 
             Single.using(resourceFactory, observableFactory,
                     null, false);
-            
+
             fail("Failed to throw NullPointerException");
         } catch (NullPointerException ex) {
             assertEquals("disposeAction is null", ex.getMessage());

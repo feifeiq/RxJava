@@ -1,12 +1,12 @@
 /**
  * Copyright 2016 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,7 +28,7 @@ public enum NeverObservableHolder implements OnSubscribe<Object> {
     ;
 
     /** The singleton instance. */
-    static final Observable<Object> NEVER = Observable.create(INSTANCE);
+    static final Observable<Object> NEVER = Observable.unsafeCreate(INSTANCE);
 
     /**
      * Returns a type-corrected singleton instance of the never Observable.
@@ -39,7 +39,7 @@ public enum NeverObservableHolder implements OnSubscribe<Object> {
     public static <T> Observable<T> instance() {
         return (Observable<T>)NEVER;
     }
-    
+
     @Override
     public void call(Subscriber<? super Object> child) {
         // deliberately no op

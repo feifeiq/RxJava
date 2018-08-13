@@ -1,5 +1,501 @@
 # RxJava Releases #
 
+### Version 1.3.8 - March 31, 2018 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.8%7C))
+
+RxJava 1.x is now officially **end-of-life (EOL)**. No further developments, bugfixes, enhancements, javadoc changes, maintenance will be provided by this project after version **1.3.8**.
+
+Users are encourage to [migrate to 2.x](https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0). In accordance, the wiki will be updated in the coming months to describe 2.x features and properties.
+
+#### Bugfixes
+
+- [Pull 5935](https://github.com/ReactiveX/RxJava/pull/5935): Fix `take()` to route late errors to `RxJavaHooks`.
+
+### Version 1.3.7 - March 21, 2018 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.7%7C))
+
+#### Bugfixes
+
+- [Pull 5917](https://github.com/ReactiveX/RxJava/pull/5917): Fix and deprecate evicting `groupBy` and add a new overload with the corrected signature.
+
+### Version 1.3.6 - February 15, 2018 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.6%7C))
+
+#### Bugfixes
+
+- [Pull 5850](https://github.com/ReactiveX/RxJava/pull/5850): Fix a race condition that may make `OperatorMaterialize` emit the wrong signals.
+- [Pull 5851](https://github.com/ReactiveX/RxJava/pull/5851): Fix a race condition in `OperatorMerge.InnerSubscriber#onError` causing incorrect terminal event.
+
+### Version 1.3.5 - January 27, 2018 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.5%7C))
+
+#### Other
+
+- [Pull 5820](https://github.com/ReactiveX/RxJava/pull/5820): `RxJavaPlugins` lookup workaround for `System.getProperties()` access restrictions.
+
+### Version 1.3.4 - November 19, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.4%7C))
+
+#### Bugfixes
+
+- [Pull 5696](https://github.com/ReactiveX/RxJava/pull/5696): Fix `Completable.concat` to use `replace` and don't dispose the old `Subscription` on switching to the next source.
+- [Pull 5726](https://github.com/ReactiveX/RxJava/pull/5726): Fix broken backpressure through `unsubscribeOn()`.
+
+#### Documentation
+
+- [Pull 5719](https://github.com/ReactiveX/RxJava/pull/5719): Document the timed `take()` operator will signal the `onCompleted` event on the given `Scheduler` when it times out.
+
+### Version 1.3.3 - October 19, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.3%7C))
+
+#### Bugfixes
+
+- [Pull 5660](https://github.com/ReactiveX/RxJava/pull/5660): Fix `timeout` (timed, selector) unsubscribe bug.
+
+### Version 1.3.2 - September 15, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.2%7C))
+
+#### Bugfixes
+
+- [Pull 5602](https://github.com/ReactiveX/RxJava/pull/5602): Workaround for CHM.keySet bad type with Java 8 compiler
+
+### Version 1.3.1 - September 10, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.1%7C))
+
+#### API changes
+*Remark: submitted & merged before the feature freeze of June 1st.*
+
+- [Pull 5332](https://github.com/ReactiveX/RxJava/pull/5332): Add the `cast` operator to `Single`.
+
+#### Bugfixes
+
+- [Pull 5430](https://github.com/ReactiveX/RxJava/pull/5430): Fix premature cleanup in `AsyncOnSubscribe` when the last `Observable` is still running.
+- [Pull 5437](https://github.com/ReactiveX/RxJava/pull/5437): `TestSubscriber::assertValuesAndClear` should reset `valueCount`.
+- [Pull 5470](https://github.com/ReactiveX/RxJava/pull/5470): Fix eager call to `RxJavHooks.onError` in `SafeCompletableSuscriber`.
+
+### Version 1.3.0 - May 5, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.3.0%7C))
+
+#### Summary
+
+Version 1.3.0 is the next minor release of the 1.x series of RxJava containing many formerly experimental API components promoted to standard. Most notably the `Completable` base reactive type is now standard as well.
+
+Note that the experimental `rx.Observable.fromEmitter()` has been removed in favor for the now also standard `Observable.create(Action1<Emitter<T>> emitter, Emitter.BackpressureMode backpressure)`
+
+The planned lifecycle of the 1.x line is as follows:
+
+Date | Remark
+------------|-------------------
+ **June 1, 2017** | Feature freeze, only bugfixes from this on.
+ **September 1, 2017** | Release `1.4.0` finalizing the remaining API components. 
+ **March 31, 2018** | End of development. 
+
+The following components have been promoted to standard:
+
+**Classes, interfaces**
+
+- **classes**: `AssemblyStackTraceException`, `RxJavaCompletableExecutionHook`, `RxJavaHooks`, `UnicastSubject`, `BlockingSingle`, `Completable`, `AssertableSubscriber`, `AsyncCompletableSubscriber`, `SafeCompletableSubscriber`
+- **interfaces**: `Cancellable`, `Emitter`, `SingleEmitter`, `CompletableEmitter`, `CompletableSubscriber`, `BackpressureOverflow.Strategy`
+
+**Operators**
+
+- **`Observable`**: `create`, `unsafeCreate`, `to`, `zip(Observable[], FuncN)`, `flatMapCompletable`, `flatMapSingle`, `groupby(Func1, Func1, Func1<Action1<K>, Map<K, Object>>)`, `onTerminateDetach`, `rebatchRequests`, `subscribeOn(Scheduler, boolean)`, `sorted`, `withLatestFrom`, `test`, `toCompletable`, `concatDelayError`, `mergeDelayError`, `switchOnNextDelayError`, `using(Func0, Func1, Action1, boolean)`, `concatMapDelayError`, `delaySubscription(Observable)`, `distinctUntilChanged(Func2)`, `concatEager`, `concatMapEager`, `onBackpressureBuffer(long, Action0, BackpressureOverflow.Strategy)`, `switchMapDelayError`, `toSortedList(int)`, `toSortedList(Func2, int)`
+- **`Completable`**: `fromEmitter`, `test`
+- **`Single`**: `fromEmitter`, `merge`, `mergeDelayError`, `cache`, `to`, `doOnEach`, `doOnSuccess`, `test`, `onErrorResumeNext`, `toCompletable`, `doOnError`, `doOnSubscribe`, `delay`, `defer`, `doOnUnsubscribe`, `doAfterTerminate`, `flatMapCompletable`, `lift`, `toBlocking`, `using`, `delaySubscription(Observable)`
+- **`TestSubscriber`**: `getCompletions`, `awaitValueCount`, `assertValuesAndClear`
+- **`SyncOnSubscriber`**: `createSingleState`, `createStateful`, `createStateless`
+
+**Other**
+
+- `Schedulers.reset`
+- `CompositeException(Throwable...)` constructor
+- `Exceptions.throwOrReport` (4 overloads)
+- `BlockingObservable.subscribe` (6 overloads)
+- **`RxJavaSchedulersHook`**: `createComputationScheduler`, `createIoScheduler`, `createNewThreadScheduler`
+- **internal**: `AssertableSubscriberObservable`, `FlatMapCompletable`, `FlatMapSingle`, `SchedulerWhen`, `BackpressureDrainManager`, `BlockingUtils`.
+- **`RxJavaPlugins`**: `reset`, `getCompletableExecutionHook`, `registerCompletableExecutionHook`
+- **`RxJavaErrorHandler`**: `handleOnNextValueRendering`, `render`
+
+In addition, the class `AsyncOnsubscribe` with its 7 factory methods and `Observable.create(AsyncOnSubscribe<S, T>)` have been promoted to **beta**.
+
+#### Acknowledgements
+
+Thanks to all who contributed to the 1.x line in the past 6 months (in order they appear on the [commit](https://github.com/ReactiveX/RxJava/commits/1.x) page):
+
+@mtiidla, @dhendry, @mostroverkhov, @yshrsmz, @BraisGabin, @cesar1000, @Jawnnypoo, @chanx2, @abersnaze, @davidmoten, @ortex, @marwinxxii, @ekchang, @pyricau, @JakeWharton, @VictorAlbertos
+
+
+### Version 1.2.10 - April 26, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.10%7C))
+
+#### Bugfixes
+
+- [Pull 5225](https://github.com/ReactiveX/RxJava/pull/5225): Fix `Completable.onErrorResumeNext` unsubscribe not propagated.
+
+#### Other
+
+- [Pull 5250](https://github.com/ReactiveX/RxJava/pull/5250): Defer creation of the `TimeoutException` when using the `Single.timeout()` operator.
+- [Pull 5258](https://github.com/ReactiveX/RxJava/pull/5258): Use IntelliJ IDE friendly assertion failure message.
+
+### Version 1.2.9 - March 24, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.9%7C))
+
+#### API enhancements
+- [Pull 5146](https://github.com/ReactiveX/RxJava/pull/5146): Add `Single.unsubscribeOn`.
+- [Pull 5195](https://github.com/ReactiveX/RxJava/pull/5195): Enhance `UnicastSubject` with optional delay error behavior.
+
+#### Bugfixes
+
+- [Pull 5141](https://github.com/ReactiveX/RxJava/pull/5141): Fix timed `replay()` not terminating when all items timeout.
+- [Pull 5181](https://github.com/ReactiveX/RxJava/pull/5181): `replay().refCount()` avoid leaking items between connections.
+
+### Version 1.2.7 - February 24, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.7%7C))
+
+#### Deprecation of `create(OnSubscribe)`
+
+The method started out in RxJava 0.x as a simple and direct way for implementing custom operators because 0.x had a much simpler protocol requirements. Over the years, as the `Observable` protocol evolved and `create` became a powerful and complicated extension point of RxJava that required users to implement the `Observable` protocol, including cancellation and backpressure manually.
+
+Unfortunately, guides, blogs, StackOverflow answers and mere typical user behavior still leads to this `create` method and lots of confusion, unstoppable sequences and `MissingBackpressureException`. We tried remedying the situation by introducing `fromEmitter` with limited discoverability success.
+
+**Therefore, as of 1.2.7 the `create()` method is now deprecated** (but won't be removed due to binary compatibility requirements). In addition `fromEmitter` has been deprecate-renamed to `create(Action1, BackpressureMode)` and the experimental-marked `fromEmitter` itself will be removed in 1.3.0.
+
+Since the functionality of `create()` was useful for writing (custom) operators inside and outside of RxJava, the new `unsafeCreate(OnSubscribe)` method was introduced as the replacement.
+
+The new `create()` and `unsafeCreate()` methods will be fast-tracked to become standard in 1.3.0.
+
+#### API enhancements
+
+- [Pull 5086](https://github.com/ReactiveX/RxJava/pull/5086): Deprecate `create()`, add alternatives
+- [Pull 5092](https://github.com/ReactiveX/RxJava/pull/5092): Add `Single.merge(Observable<Single<T>>)`, `Observable.flatMapSingle()` & `Observable.flatMapCompletable`.
+- [Pull 5091](https://github.com/ReactiveX/RxJava/pull/5091): Add `subscribeOn(Scheduler, boolean)` avoid same-pool deadlock.
+
+#### API deprecations
+
+- [Pull 5086](https://github.com/ReactiveX/RxJava/pull/5086): 
+  - Deprecate `Observable.create(OnSubscribe)`, 
+  - Deprecate `fromEmitter` in favor of `Observable.create(Action1, BackpressureMode)`. 
+
+#### Bugfixes
+
+- [Pull 5091](https://github.com/ReactiveX/RxJava/pull/5091): `create(Action1, BackpressureMode)`+`subscribeOn` avoid same-pool deadlock.
+- [Pull 5123](https://github.com/ReactiveX/RxJava/pull/5123): `throttleFirst` detecting clock-drift backwards to open the gate
+
+#### Other
+
+- [Pull 5125](https://github.com/ReactiveX/RxJava/pull/5125): reduce stack depth with `switchIfEmpty`
+
+### Version 1.2.6 - February 3, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.6%7C))
+
+#### Documentation
+
+- [Pull 5000](https://github.com/ReactiveX/RxJava/pull/5000): Add which are the other stardard methods of create
+- [Pull 5007](https://github.com/ReactiveX/RxJava/pull/5007): update `sample(time)` diagram to indicate emission of last
+- [Pull 5048](https://github.com/ReactiveX/RxJava/pull/5048): Improve the javadoc of `BehaviorSubject`
+
+#### Bugfixes
+
+- [Pull 5030](https://github.com/ReactiveX/RxJava/pull/5030): fix `groupBy` consuming the upstream in an unbounded manner
+
+### Version 1.2.5 - January 6, 2017 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.5%7C))
+
+#### Documentation
+
+- [Pull 4963](https://github.com/ReactiveX/RxJava/pull/4963): Add missing marbles, fix image sizes
+
+#### Bugfixes
+
+- [Pull 4941](https://github.com/ReactiveX/RxJava/pull/4941): Fix `Completable.mergeDelayError` to check unsafe availability
+
+### Version 1.2.4 - December 15, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.4%7C))
+
+#### Other
+
+- [Pull 4912](https://github.com/ReactiveX/RxJava/pull/4912): Fix `resolveAndroidApiVersion` when running under Robolectric
+- [Pull 4908](https://github.com/ReactiveX/RxJava/pull/4908): Use `t` instead of value to allow for IDE naming.
+- [Pull 4884](https://github.com/ReactiveX/RxJava/pull/4884): enable `TestScheduler` with nanosecond periodic scheduling
+
+### Version 1.2.3 - November 23, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.3%7C))
+
+#### Documentation enhancements
+
+- [Pull 4846](https://github.com/ReactiveX/RxJava/pull/4846): Specify the system parameters configuring the schedulers in the `Schedulers` javadoc.
+
+#### API enhancements
+
+- [Pull 4777](https://github.com/ReactiveX/RxJava/pull/4777): add `AssertableSubscriber` to provide method chained version of `TestSubscriber` and support a `test()` method on the base reactive classes.
+- [Pull 4851](https://github.com/ReactiveX/RxJava/pull/4851): add `Single.fromEmitter`
+- [Pull 4852](https://github.com/ReactiveX/RxJava/pull/4852): `Single.takeUntil` `CancellationException` message enhancements
+
+#### Performance enhancements
+
+- [Pull 4846](https://github.com/ReactiveX/RxJava/pull/4846): remove ObjectPool, code style cleanups
+
+#### Bugfixes
+
+- [Pull 4826](https://github.com/ReactiveX/RxJava/pull/4826):   `Schedule.when()` bug fix
+- [Pull 4830](https://github.com/ReactiveX/RxJava/pull/4830): `Completable.doAfterTerminate` to run after `onError` as well.
+- [Pull 4841](https://github.com/ReactiveX/RxJava/pull/4841): replace non-serializable value of `OnNextValue` with its `toString`.
+- [Pull 4849](https://github.com/ReactiveX/RxJava/pull/4849): fix `Completable.concat` & `merge` hanging in async situations.
+
+### Version 1.2.2 - November 3, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.2%7C))
+
+Note that the interface `Cancellable` has been moved to `rx.functions` affecting `CompletableEmitter` and  the experimental `Observable.fromEmitter(Action1<AsyncEmitter<T>> emitter, AsyncEmitter.BackpressureMode backpressure)` has been removed.
+
+Another important clarification was added to the javadoc about using `SingleSubscriber`: due to the internal enhancements of `Single`, a `SingleSubscriber` is no longer wrapped into a `Subscriber`+`SafeSubscriber` which setup used to call `unsubscribe` on the `SingleSubscriber` yielding `isUnsubscribed() == true` when the source terminated. Therefore, when one extends the class `SingleSubscriber`, the `unsubscribe()` should be called manually to yield the given expecation mentioned before:
+
+``` java
+Subscritpion s = Single.just(1).subscribe(new SingleSubscriber<Integer>() {
+    @Override public void onSuccess(Integer t) {
+        System.out.println("Success");
+        unsubscribe();
+    }
+
+    @Override public void onError(Throwable e) {
+        e.printStackTrace();
+        unsubscribe();
+    }
+});
+
+assertTrue(s.isUnsubscribed());
+```
+#### Documentation enhancements
+
+- [Pull 4693](https://github.com/ReactiveX/RxJava/pull/4693): improve `timer` javadoc
+- [Pull 4769](https://github.com/ReactiveX/RxJava/pull/4769): Add note to `SingleSubscriber` doc about unsubscribe invocation in `onSuccess` and `onError`.
+
+#### API enhancements
+
+- [Pull 4725](https://github.com/ReactiveX/RxJava/pull/4725): remove `AsyncEmitter` deprecations
+- [Pull 4757](https://github.com/ReactiveX/RxJava/pull/4757): Add `cache()` to `Single`
+
+#### Performance enhancements
+
+- [Pull 4676](https://github.com/ReactiveX/RxJava/pull/4676): Make identity function a singleton.
+- [Pull 4764](https://github.com/ReactiveX/RxJava/pull/4764): `zip` - check local boolean before volatile in boolean and
+
+#### Bugfixes
+
+- [Pull 4716](https://github.com/ReactiveX/RxJava/pull/4716): fix`subscribe(Action1 [, Action1])` to report `isUnsubscribed` true after the callbacks were invoked
+- [Pull 4740](https://github.com/ReactiveX/RxJava/pull/4740): Error when tracking exception with unknown cause
+- [Pull 4791](https://github.com/ReactiveX/RxJava/pull/4791): Add null check to `Observable.switchIfEmpty`
+
+### Version 1.2.1 - October 5, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.1%7C))
+
+#### API enhancements
+
+  - [Pull 4555](https://github.com/ReactiveX/RxJava/pull/4555): enhance generics of `doOnError` and `doOnRequest`
+  - [Pull 4580](https://github.com/ReactiveX/RxJava/pull/4580): rename `AsyncEmitter` to `Emitter`
+
+#### Performance enhancements
+
+  - [Pull 4621](https://github.com/ReactiveX/RxJava/pull/4621): `NotificationLite` - reduce allocations
+  - [Pull 4648](https://github.com/ReactiveX/RxJava/pull/4648): rework `Single` internals to reduce overhead and stack depth
+
+#### Deprecations
+
+  - [Pull 4580](https://github.com/ReactiveX/RxJava/pull/4580): `CompletableEmitter.setCancellation` will change its type in 1.2.2.
+  - [Pull 4648](https://github.com/ReactiveX/RxJava/pull/4648): Deprecate `Single(Observable.OnSubscribe)` constructor
+
+#### Bugfixes
+
+  - [Pull 4641](https://github.com/ReactiveX/RxJava/pull/4641): `SafeSubscriber` not to call `RxJavaHooks` before delivering the error
+
+### Version 1.2.0 - September 17, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.2.0%7C))
+
+This is a minor release that is functionally equivalent to 1.1.10 minus the removal of some deprecated experimental APIs.
+
+#### Promote `@Beta` to standard (`@since 1.2`)
+
+  - in `rx.Observable`
+    - `create(SyncOnSubscribe<S, T>)`
+    - `doOnRequest(Action1<Long>)`
+    - `flatMap(Func1<? super T, ? extends Observable<? extends R>>, Func1<? super Throwable, ? extends Observable<? extends R>>, Func0<? extends Observable<? extends R>>, int)`
+    - `flatMap(Func1<? super T, ? extends Observable<? extends R>>, int)`
+    - `flatMap(Func1<? super T, ? extends Observable<? extends U>>, Func2<? super T, ? super U, ? extends R>, int)`
+    - `flatMapIterable(Func1<? super T, ? extends Iterable<? extends R>>, int)
+rx.Observable.flatMapIterable(Func1<? super T, ? extends Iterable<? extends U>>, Func2<? super T, ? super U, ? extends R>, int)`
+    - `fromCallable(Callable<? extends T>)`
+    - `toSingle()`
+  - `rx.Single` (the class itself)
+    - `fromCallable(Callable<? extends T>)`
+  - `rx.SingleSubscriber<T>`
+  - in `rx.observables.ConnectableObservable`
+    - `autoConnect()`
+    - `autoConnect(int, Action1<? super Subscription>)`
+    - `autoConnect(int)`
+  - `rx.observables.SyncOnSubscribe<S, T>`
+  - in `rx.subjects.AsyncSubject`
+    - `getThrowable()`
+    - `getValue()`
+    - `hasCompleted()`
+    - `hasThrowable()`
+    - `hasValue()`
+  - in `rx.subjects.BehaviorSubject`
+    - `getThrowable()`
+    - `getValue()`
+    - `getValues()`
+    - `getValues(T[])`
+    - `hasCompleted()`
+    - `hasThrowable()`
+    - `hasValue()`
+  - in `rx.subjects.PublishSubject`
+    - `getThrowable()`
+    - `hasCompleted()`
+    - `hasThrowable()`
+  - in `rx.subjects.ReplaySubject`
+    - `getThrowable()`
+    - `getValue()`
+    - `getValues()`
+    - `getValues(T[])`
+    - `hasAnyValue()`
+    - `hasCompleted()`
+    - `hasThrowable()`
+    - `hasValue()`
+    - `size()`
+
+#### Promote `@Experimental` to `@Beta`
+
+  - `rx.BackpressureOverflow`
+  - in `rx.Observable`
+    - `concatDelayError(Iterable<? extends Observable<? extends T>>)`
+    - `concatDelayError(Observable<? extends Observable<? extends T>>)`
+    - `concatEager(Iterable<? extends Observable<? extends T>>, int)`
+    - `concatEager(Iterable<? extends Observable<? extends T>>)`
+    - `concatEager(Observable<? extends Observable<? extends T>>, int)`
+    - `concatEager(Observable<? extends Observable<? extends T>>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>, Observable<? extends T>, Observable<? extends T>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>, Observable<? extends T>)`
+    - `concatEager(Observable<? extends T>, Observable<? extends T>)`
+    - `concatMapDelayError(Func1<? super T, ? extends Observable<? extends R>>)`
+    - `concatMapEager(Func1<? super T, ? extends Observable<? extends R>>, int, int)`
+    - `concatMapEager(Func1<? super T, ? extends Observable<? extends R>>, int)`
+    - `concatMapEager(Func1<? super T, ? extends Observable<? extends R>>)`
+    - `delaySubscription(Observable<U>)`
+    - `distinctUntilChanged(Func2<? super T, ? super T, Boolean>)`
+    - `mergeDelayError(Observable<? extends Observable<? extends T>>, int)`
+    - `onBackpressureBuffer(long, Action0, Strategy)`
+    - `switchMapDelayError(Func1<? super T, ? extends Observable<? extends R>>)`
+    - `switchOnNextDelayError(Observable<? extends Observable<? extends T>>)`
+    - `toCompletable()`
+    - `toSortedList(Func2<? super T, ? super T, Integer>, int)`
+    - `toSortedList(int)`
+    - `using(Func0<Resource>, Func1<? super Resource, ? extends Observable<? extends T>>, Action1<? super Resource>, boolean)`
+  - in `rx.observables.BlockingObservable`
+    - `subscribe()`
+    - `subscribe(Action1<? super T>, Action1<? super Throwable>, Action0)`
+    - `subscribe(Action1<? super T>, Action1<? super Throwable>)`
+    - `subscribe(Action1<? super T>)`
+    - `subscribe(Observer<? super T>)`
+    - `subscribe(Subscriber<? super T>)`
+  - `rx.Completable`
+  - in `rx.Single`
+    - `defer(Callable<Single<T>>)`
+    - `delay(long, TimeUnit, Scheduler)`
+    - `delay(long, TimeUnit)`
+    - `delaySubscription(Observable<?>)`
+    - `doAfterTerminate(Action0)`
+    - `doOnError(Action1<Throwable>)`
+    - `doOnSubscribe(Action0)`
+    - `doOnSuccess(Action1<? super T>)`
+    - `doOnUnsubscribe(Action0)`
+    - `lift(Operator<? extends R, ? super T>)`
+    - `onErrorResumeNext(Func1<Throwable, ? extends Single<? extends T>>)`
+    - `onErrorResumeNext(Single<? extends T>)`
+    - `toBlocking()`
+    - `toCompletable()`
+    - `using(Func0<Resource>, Func1<? super Resource, ? extends Single<? extends T>>, Action1<? super Resource>, boolean)`
+    - `using(Func0<Resource>, Func1<? super Resource, ? extends Single<? extends T>>, Action1<? super Resource>)`
+  - `rx.exceptions.CompositeException.CompositeException(Throwable...)`
+  - in `rx.exceptions.Exceptions`
+    - `throwOrReport(Throwable, Observer<?>, Object)`
+    - `throwOrReport(Throwable, Observer<?>)`
+    - `throwOrReport(Throwable, SingleSubscriber<?>)`
+- `rx.singles.BlockingSingle<T>`
+
+#### Removed
+  - in `rx.Observable`
+    - `extend(Func1<OnSubscribe<T>, R>)` : use `to(Func1)` instead
+    - `fromAsync()` : renamed to `fromEmitter()`
+  - in `rx.Completable`
+    - `CompletableSubscriber` : now `rx.CompletableSubscriber`
+    - `CompletableOnSubscribe` : renamed to `Completable.OnSubscribe`
+    - `CompletableOperator` : renamed to `Completable.Operator`
+    - `CompletableTransformer` : renamed to `Completable.Transformer`
+
+### Version 1.1.10 - September 5, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.1.10%7C))
+
+The release contains a few javadoc and internal cleanups, some enhancements and some deprecations.
+
+**Notable renames:**
+
+  - `fromAsync` is now `fromEmitter`
+  - `rx.Completable.CompletableSubscriber` is now `rx.CompletableSubscriber`
+
+#### API enhancements
+
+  - [Pull 4423](https://github.com/ReactiveX/RxJava/pull/4423): add free-form conversion operator `to(Func1)` to `Observable`, `Single` and `Completable`.
+  - [Pull 4425](https://github.com/ReactiveX/RxJava/pull/4425): Rename `Completable` helper interfaces by dropping the `Completable` prefix, move `rx.Completable.CompletableSubscriber` to `rx.CompletableSubscriber`.
+  - [Pull 4442](https://github.com/ReactiveX/RxJava/pull/4442): Rename `fromAsync` to `fromEmitter`.  
+  - [Pull 4452](https://github.com/ReactiveX/RxJava/pull/4452): Enhance generics on Observable.onErrorResumeNext and onErrorReturn 
+  - [Pull 4442](https://github.com/ReactiveX/RxJava/pull/4442): Add `Completable.fromEmitter`
+  - [Pull 4453](https://github.com/ReactiveX/RxJava/pull/4453): Remove `throws InterruptedException` from `TestSubscriber.awaitValueCount()` 
+  - [Pull 4460](https://github.com/ReactiveX/RxJava/pull/4460): Add `Completable.doOnEach(Action1)`
+  - [Pull 4461](https://github.com/ReactiveX/RxJava/pull/4461): Add `Single.doOnEach`
+
+#### Deprecations
+
+  - [Pull 4425](https://github.com/ReactiveX/RxJava/pull/4425): Deprecate `CompletableOnSubscribe`, `CompletableOperator` and `CompletableTransformer` and rename them by dropping the `Completable` prefix
+  - [Pull 4442](https://github.com/ReactiveX/RxJava/pull/4442): Deprecate `Observable.fromAsync` by renaming it to `Observable.fromEmitter`.
+  - [Pull 4466](https://github.com/ReactiveX/RxJava/pull/4466): Deprecate `Notification.createOnCompleted(Class)`
+
+#### Bugfixes
+
+  - [Pull 4397](https://github.com/ReactiveX/RxJava/pull/4397): Fix multiple values produced by `throttleFirst` with `TestScheduler`
+  - [Pull 4427](https://github.com/ReactiveX/RxJava/pull/4427): Fix `Observable.fromEmitter` (formerly `Observable.fromAsync`) post-complete event suppression
+  - [Pull 4447](https://github.com/ReactiveX/RxJava/pull/4447): Fix type parameters of `Observable.withLatestFrom`
+
+
+### Version 1.1.9 - August 12, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.1.9%7C))
+
+This release contains mostly internal cleanups, reinforced Observable-protocol adherence and minor javadoc fixes.
+
+**Warning**: the backpressure-behavior of `PublishSubject` has been changed. In earlier versions, when you called `PublishSubject.onNext` too frequently, that usually triggered a `MissingBackpressureException` in some downstream operator (`observeOn`, `zip`, etc.) and often it was not obvious who to blame for it. With 1.1.9, `PublishSubject` now tracks the request amounts of each of its children and refuses to overflow them, signalling a `MissingBackpressureException` to them instead which now points to the right operator.
+
+#### API enhancements
+
+  - [Pull 4226](https://github.com/ReactiveX/RxJava/pull/4226): Add `Single.flatMapCompletable`. 
+  - [Pull 4225](https://github.com/ReactiveX/RxJava/pull/4225): `PublishSubject` now signals `MissingBackpressureException` when backpressured.
+  - [Pull 4264](https://github.com/ReactiveX/RxJava/pull/4264): Add `Observable.sorted()` + overloads: sorts and re-emits each element of a finite sequence.
+  - [Pull 4261](https://github.com/ReactiveX/RxJava/pull/4261): Add `concatDelayError` multiple arguments.
+  - [Pull 4330](https://github.com/ReactiveX/RxJava/pull/4330): Add `Observable.concat(Iterable)` overload.
+  - [Pull 4322](https://github.com/ReactiveX/RxJava/pull/4322): Add `TestSubscriber.assertValuesAndClear` 
+
+#### Performance enhancements
+
+  - [Pull 4232](https://github.com/ReactiveX/RxJava/pull/4232): Less allocation in operator `amb`.
+  - [Pull 4233](https://github.com/ReactiveX/RxJava/pull/4233): Less allocation in `autoConnect`.
+  - [Pull 4236](https://github.com/ReactiveX/RxJava/pull/4236): Less allocation in `join`.
+  - [Pull 4237](https://github.com/ReactiveX/RxJava/pull/4237): Less allocation in `groupJoin` .
+  - [Pull 4239](https://github.com/ReactiveX/RxJava/pull/4239): Less allocation in `skip` with time.
+  - [Pull 4262](https://github.com/ReactiveX/RxJava/pull/4262): Less allocation in `doOnEach`. 
+  - [Pull 4328](https://github.com/ReactiveX/RxJava/pull/4328): Compact `MultipleAssignmentSubscription` and `SerialSubscription`
+
+#### Bugfixes
+
+  - [Pull 4231](https://github.com/ReactiveX/RxJava/pull/4231): `Schedulers.io()` workers now wait until a blocking task finishes before becoming available again.
+  - [Pull 4244](https://github.com/ReactiveX/RxJava/pull/4244): Fix `all` multiple terminal events.
+  - [Pull 4241](https://github.com/ReactiveX/RxJava/pull/4241): Fix reentrancy bug in `repeatWhen` and `retryWhen` when the resubscription happens.
+  - [Pull 4225](https://github.com/ReactiveX/RxJava/pull/4225): `PublishSubject` now checks for unsubscribed child while dispatching events.
+  - [Pull 4245](https://github.com/ReactiveX/RxJava/pull/4245): Fix `any` multiple terminal events.
+  - [Pull 4246](https://github.com/ReactiveX/RxJava/pull/4246): Fix `reduce` multiple terminal events.
+  - [Pull 4250](https://github.com/ReactiveX/RxJava/pull/4250): Fix `onBackpressureDrop` multiple terminal events.
+  - [Pull 4252](https://github.com/ReactiveX/RxJava/pull/4252): Fix `collect` multiple terminal events.
+  - [Pull 4251](https://github.com/ReactiveX/RxJava/pull/4251): Fix `toMap` multiple terminal events and backpressure behavior.
+  - [Pull 4270](https://github.com/ReactiveX/RxJava/pull/4270): Fix `toMultimap` multiple terminal events .
+  - [Pull 4311](https://github.com/ReactiveX/RxJava/pull/4311): Fix `Schedulers.from()` to call `RxJavaHooks.onScheduleAction`.
+  
+### Version 1.1.8 - July 23, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.1.8%7C))
+
+#### Bugfixes
+
+  - [Pull 4209](https://github.com/ReactiveX/RxJava/pull/4209): `merge`/`flatMap` to keep scalar/inner element relative order.
+  - [Pull 4215](https://github.com/ReactiveX/RxJava/pull/4215): Fix assembly tracking replacing original exception.
+  - [Pull 4229](https://github.com/ReactiveX/RxJava/pull/4229): fix replay() retaining reference to the child Subscriber
+
 ### Version 1.1.7 - July 10, 2016 ([Maven](http://search.maven.org/#artifactdetails%7Cio.reactivex%7Crxjava%7C1.1.7%7C))
 
 This release has several documentation fixes (`AsyncSubject`, `doOnEach`, `cache`, `scan`, `reduce`, backpressure descriptions) and internal cleanups based on tool feedback (code-coverage and PMD).

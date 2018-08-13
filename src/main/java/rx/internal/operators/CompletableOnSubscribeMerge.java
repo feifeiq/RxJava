@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,49 +21,47 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.*;
 
 import rx.*;
-import rx.Completable.*;
+import rx.Completable.OnSubscribe;
 import rx.Observable;
 import rx.exceptions.CompositeException;
 import rx.plugins.RxJavaHooks;
 import rx.subscriptions.CompositeSubscription;
 
-public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe {
+public final class CompletableOnSubscribeMerge implements OnSubscribe {
     final Observable<Completable> source;
     final int maxConcurrency;
     final boolean delayErrors;
-    
+
     @SuppressWarnings("unchecked")
     public CompletableOnSubscribeMerge(Observable<? extends Completable> source, int maxConcurrency, boolean delayErrors) {
         this.source = (Observable<Completable>)source;
         this.maxConcurrency = maxConcurrency;
         this.delayErrors = delayErrors;
     }
-    
+
     @Override
     public void call(CompletableSubscriber s) {
         CompletableMergeSubscriber parent = new CompletableMergeSubscriber(s, maxConcurrency, delayErrors);
         s.onSubscribe(parent);
-        source.subscribe(parent);
+        source.unsafeSubscribe(parent);
     }
-    
+
     static final class CompletableMergeSubscriber
     extends Subscriber<Completable> {
         final CompletableSubscriber actual;
         final CompositeSubscription set;
-        final int maxConcurrency;
         final boolean delayErrors;
-        
+
         volatile boolean done;
-        
+
         final AtomicReference<Queue<Throwable>> errors;
-        
+
         final AtomicBoolean once;
-        
+
         final AtomicInteger wip;
-        
+
         public CompletableMergeSubscriber(CompletableSubscriber actual, int maxConcurrency, boolean delayErrors) {
             this.actual = actual;
-            this.maxConcurrency = maxConcurrency;
             this.delayErrors = delayErrors;
             this.set = new CompositeSubscription();
             this.wip = new AtomicInteger(1);
@@ -75,14 +73,14 @@ public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe
                 request(maxConcurrency);
             }
         }
-        
+
         Queue<Throwable> getOrCreateErrors() {
             Queue<Throwable> q = errors.get();
-            
+
             if (q != null) {
                 return q;
             }
-            
+
             q = new ConcurrentLinkedQueue<Throwable>();
             if (errors.compareAndSet(null, q)) {
                 return q;
@@ -97,7 +95,7 @@ public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe
             }
 
             wip.getAndIncrement();
-            
+
             t.unsafeSubscribe(new CompletableSubscriber() {
                 Subscription d;
                 boolean innerDone;
@@ -106,7 +104,7 @@ public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe
                     this.d = d;
                     set.add(d);
                 }
-                
+
                 @Override
                 public void onError(Throwable e) {
                     if (innerDone) {
@@ -115,16 +113,16 @@ public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe
                     }
                     innerDone = true;
                     set.remove(d);
-                    
+
                     getOrCreateErrors().offer(e);
-                    
+
                     terminate();
-                    
+
                     if (delayErrors && !done) {
                         request(1);
                     }
                 }
-                
+
                 @Override
                 public void onCompleted() {
                     if (innerDone) {
@@ -132,9 +130,9 @@ public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe
                     }
                     innerDone = true;
                     set.remove(d);
-                    
+
                     terminate();
-                    
+
                     if (!done) {
                         request(1);
                     }
@@ -189,7 +187,7 @@ public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe
             }
         }
     }
-    
+
     /**
      * Collects the Throwables from the queue, adding subsequent Throwables as suppressed to
      * the first Throwable and returns it.
@@ -198,7 +196,7 @@ public final class CompletableOnSubscribeMerge implements CompletableOnSubscribe
      */
     public static Throwable collectErrors(Queue<Throwable> q) {
         List<Throwable> list = new ArrayList<Throwable>();
-        
+
         Throwable t;
         while ((t = q.poll()) != null) {
             list.add(t);

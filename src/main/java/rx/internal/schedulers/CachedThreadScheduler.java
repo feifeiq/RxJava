@@ -24,9 +24,9 @@ import rx.internal.util.RxThreadFactory;
 import rx.subscriptions.*;
 
 public final class CachedThreadScheduler extends Scheduler implements SchedulerLifecycle {
-    private static final long KEEP_ALIVE_TIME = 60;
+    private static final long KEEP_ALIVE_TIME;
     private static final TimeUnit KEEP_ALIVE_UNIT = TimeUnit.SECONDS;
-    
+
     static final ThreadWorker SHUTDOWN_THREADWORKER;
 
     static final CachedWorkerPool NONE;
@@ -34,15 +34,17 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
     final ThreadFactory threadFactory;
 
     final AtomicReference<CachedWorkerPool> pool;
-    
+
     static {
         SHUTDOWN_THREADWORKER = new ThreadWorker(RxThreadFactory.NONE);
         SHUTDOWN_THREADWORKER.unsubscribe();
 
         NONE = new CachedWorkerPool(null, 0, null);
         NONE.shutdown();
+
+        KEEP_ALIVE_TIME = Integer.getInteger("rx.io-scheduler.keepalive", 60);
     }
-    
+
     static final class CachedWorkerPool {
         private final ThreadFactory threadFactory;
         private final long keepAliveTime;
@@ -126,7 +128,7 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
         long now() {
             return System.nanoTime();
         }
-        
+
         void shutdown() {
             try {
                 if (evictorTask != null) {
@@ -146,7 +148,7 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
         this.pool = new AtomicReference<CachedWorkerPool>(NONE);
         start();
     }
-    
+
     @Override
     public void start() {
         CachedWorkerPool update =
@@ -168,13 +170,13 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
             }
         }
     }
-    
+
     @Override
     public Worker createWorker() {
         return new EventLoopWorker(pool.get());
     }
 
-    static final class EventLoopWorker extends Scheduler.Worker {
+    static final class EventLoopWorker extends Scheduler.Worker implements Action0 {
         private final CompositeSubscription innerSubscription = new CompositeSubscription();
         private final CachedWorkerPool pool;
         private final ThreadWorker threadWorker;
@@ -190,9 +192,16 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
         public void unsubscribe() {
             if (once.compareAndSet(false, true)) {
                 // unsubscribe should be idempotent, so only do this once
-                pool.release(threadWorker);
+
+                // Release the worker _after_ the previous action (if any) has completed
+                threadWorker.schedule(this);
             }
             innerSubscription.unsubscribe();
+        }
+
+        @Override
+        public void call() {
+            pool.release(threadWorker);
         }
 
         @Override

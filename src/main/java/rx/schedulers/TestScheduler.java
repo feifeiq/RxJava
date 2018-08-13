@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Action0;
+import rx.internal.schedulers.SchedulePeriodicHelper;
+import rx.internal.schedulers.SchedulePeriodicHelper.NowNanoSupplier;
 import rx.subscriptions.BooleanSubscription;
 import rx.subscriptions.Subscriptions;
 
@@ -32,9 +34,9 @@ import rx.subscriptions.Subscriptions;
  */
 public class TestScheduler extends Scheduler {
     final Queue<TimedAction> queue = new PriorityQueue<TimedAction>(11, new CompareActionsByTime());
-    
+
     static long counter;
-    
+
     // Storing time in nanoseconds internally.
     long time;
 
@@ -130,7 +132,7 @@ public class TestScheduler extends Scheduler {
         return new InnerTestScheduler();
     }
 
-    final class InnerTestScheduler extends Worker {
+    final class InnerTestScheduler extends Worker implements NowNanoSupplier {
 
         private final BooleanSubscription s = new BooleanSubscription();
 
@@ -173,8 +175,19 @@ public class TestScheduler extends Scheduler {
         }
 
         @Override
+        public Subscription schedulePeriodically(Action0 action, long initialDelay, long period, TimeUnit unit) {
+            return SchedulePeriodicHelper.schedulePeriodically(this,
+                    action, initialDelay, period, unit, this);
+        }
+
+        @Override
         public long now() {
             return TestScheduler.this.now();
+        }
+
+        @Override
+        public long nowNanos() {
+            return TestScheduler.this.time;
         }
 
     }

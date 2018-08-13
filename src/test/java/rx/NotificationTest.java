@@ -29,49 +29,49 @@ import rx.exceptions.TestException;
 public class NotificationTest {
 
     @Test
-    public void testOnNextIntegerNotificationDoesNotEqualNullNotification(){
+    public void testOnNextIntegerNotificationDoesNotEqualNullNotification() {
         final Notification<Integer> integerNotification = Notification.createOnNext(1);
         final Notification<Integer> nullNotification = Notification.createOnNext(null);
         assertFalse(integerNotification.equals(nullNotification));
     }
 
     @Test
-    public void testOnNextNullNotificationDoesNotEqualIntegerNotification(){
+    public void testOnNextNullNotificationDoesNotEqualIntegerNotification() {
         final Notification<Integer> integerNotification = Notification.createOnNext(1);
         final Notification<Integer> nullNotification = Notification.createOnNext(null);
         assertFalse(nullNotification.equals(integerNotification));
     }
 
     @Test
-    public void testOnNextIntegerNotificationsWhenEqual(){
+    public void testOnNextIntegerNotificationsWhenEqual() {
         final Notification<Integer> integerNotification = Notification.createOnNext(1);
         final Notification<Integer> integerNotification2 = Notification.createOnNext(1);
         assertTrue(integerNotification.equals(integerNotification2));
     }
 
     @Test
-    public void testOnNextIntegerNotificationsWhenNotEqual(){
+    public void testOnNextIntegerNotificationsWhenNotEqual() {
         final Notification<Integer> integerNotification = Notification.createOnNext(1);
         final Notification<Integer> integerNotification2 = Notification.createOnNext(2);
         assertFalse(integerNotification.equals(integerNotification2));
     }
 
     @Test
-    public void testOnErrorIntegerNotificationDoesNotEqualNullNotification(){
+    public void testOnErrorIntegerNotificationDoesNotEqualNullNotification() {
         final Notification<Integer> integerNotification = Notification.createOnError(new Exception());
         final Notification<Integer> nullNotification = Notification.createOnError(null);
         assertFalse(integerNotification.equals(nullNotification));
     }
 
     @Test
-    public void testOnErrorNullNotificationDoesNotEqualIntegerNotification(){
+    public void testOnErrorNullNotificationDoesNotEqualIntegerNotification() {
         final Notification<Integer> integerNotification = Notification.createOnError(new Exception());
         final Notification<Integer> nullNotification = Notification.createOnError(null);
         assertFalse(nullNotification.equals(integerNotification));
     }
 
     @Test
-    public void testOnErrorIntegerNotificationsWhenEqual(){
+    public void testOnErrorIntegerNotificationsWhenEqual() {
         final Exception exception = new Exception();
         final Notification<Integer> onErrorNotification = Notification.createOnError(exception);
         final Notification<Integer> onErrorNotification2 = Notification.createOnError(exception);
@@ -79,7 +79,7 @@ public class NotificationTest {
     }
 
     @Test
-    public void testOnErrorIntegerNotificationWhenNotEqual(){
+    public void testOnErrorIntegerNotificationWhenNotEqual() {
         final Notification<Integer> onErrorNotification = Notification.createOnError(new Exception());
         final Notification<Integer> onErrorNotification2 = Notification.createOnError(new Exception());
         assertFalse(onErrorNotification.equals(onErrorNotification2));
@@ -87,6 +87,7 @@ public class NotificationTest {
 
     @Test
     public void createWithClass() {
+        @SuppressWarnings("deprecation")
         Notification<Integer> n = Notification.createOnCompleted(Integer.class);
         assertTrue(n.isOnCompleted());
         assertFalse(n.hasThrowable());
@@ -156,7 +157,7 @@ public class NotificationTest {
         Notification<Integer> z1 = Notification.createOnNext(null);
         Notification<Integer> z1a = Notification.createOnNext(null);
 
-        
+
         Notification<Integer> n1 = Notification.createOnNext(1);
         Notification<Integer> n1a = Notification.createOnNext(new Integer(1)); // make unique reference
         Notification<Integer> n2 = Notification.createOnNext(2);
@@ -183,11 +184,11 @@ public class NotificationTest {
 
         assertFalse(n1.equals(null));
         assertFalse(n1.equals(1));
-        
+
         assertEquals(z1a, z1);
         assertEquals(z1, z1a);
     }
-    
+
     @Test
     public void contentChecks() {
         Notification<Integer> z1 = Notification.createOnNext(null);
@@ -199,11 +200,11 @@ public class NotificationTest {
         assertFalse(z1.hasValue());
         assertFalse(z1.hasThrowable());
         assertFalse(z1.isOnCompleted());
-        
+
         assertTrue(n1.hasValue());
         assertFalse(n1.hasThrowable());
         assertFalse(n1.isOnCompleted());
-        
+
         assertFalse(e1.hasValue());
         assertTrue(e1.hasThrowable());
         assertFalse(e1.isOnCompleted());
@@ -217,13 +218,13 @@ public class NotificationTest {
         assertTrue(c1.isOnCompleted());
 
     }
-    
+
     @Test
     public void exceptionEquality() {
         EqualException ex1 = new EqualException("1");
         EqualException ex2 = new EqualException("1");
         EqualException ex3 = new EqualException("3");
-        
+
         Notification<Integer> e1 = Notification.createOnError(ex1);
         Notification<Integer> e2 = Notification.createOnError(ex2);
         Notification<Integer> e3 = Notification.createOnError(ex3);
@@ -232,28 +233,33 @@ public class NotificationTest {
         assertEquals(e1, e2);
         assertEquals(e2, e1);
         assertEquals(e2, e2);
-        
+
         assertNotEquals(e1, e3);
         assertNotEquals(e2, e3);
         assertNotEquals(e3, e1);
         assertNotEquals(e3, e2);
     }
-    
+
     static final class EqualException extends RuntimeException {
-        
+
         /** */
         private static final long serialVersionUID = 446310455393317050L;
 
         public EqualException(String message) {
             super(message);
         }
-        
+
         @Override
         public boolean equals(Object o) {
             if (o instanceof EqualException) {
                 return getMessage().equals(((EqualException)o).getMessage());
             }
             return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return getMessage().hashCode();
         }
     }
 }

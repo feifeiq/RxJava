@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +19,6 @@ import java.util.Queue;
 import java.util.concurrent.atomic.*;
 
 import rx.*;
-import rx.annotations.Experimental;
 import rx.exceptions.*;
 import rx.functions.Action0;
 import rx.internal.operators.*;
@@ -32,23 +31,25 @@ import rx.internal.util.unsafe.*;
  * amount. In this case, the buffered values are no longer retained. If the Subscriber
  * requests a limited amount, queueing is involved and only those values are retained which
  * weren't requested by the Subscriber at that time.
- * 
+ * <p>
+ * <img width="640" height="370" src="https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/UnicastSubject.v1.png" alt="">
  * @param <T> the input and output value type
+ * @since 1.3
  */
-@Experimental
 public final class UnicastSubject<T> extends Subject<T, T> {
 
     final State<T> state;
 
     /**
      * Constructs an empty UnicastSubject instance with the default capacity hint of 16 elements.
-     * 
+     *
      * @param <T> the input and output value type
      * @return the created UnicastSubject instance
      */
     public static <T> UnicastSubject<T> create() {
         return create(16);
     }
+
     /**
      * Constructs an empty UnicastSubject instance with a capacity hint.
      * <p>The capacity hint determines the internal queue's island size: the larger
@@ -59,7 +60,19 @@ public final class UnicastSubject<T> extends Subject<T, T> {
      * @return the created BufferUntilSubscriber instance
      */
     public static <T> UnicastSubject<T> create(int capacityHint) {
-        State<T> state = new State<T>(capacityHint, null);
+        State<T> state = new State<T>(capacityHint, false, null);
+        return new UnicastSubject<T>(state);
+    }
+
+    /**
+     * Constructs an empty UnicastSubject instance with the default capacity hint of 16 elements.
+     *
+     * @param delayError deliver pending next events before error.
+     * @param <T> the input and output value type
+     * @return the created UnicastSubject instance
+     */
+    public static <T> UnicastSubject<T> create(boolean delayError) {
+        State<T> state = new State<T>(16, delayError, null);
         return new UnicastSubject<T>(state);
     }
 
@@ -78,7 +91,28 @@ public final class UnicastSubject<T> extends Subject<T, T> {
      * @return the created BufferUntilSubscriber instance
      */
     public static <T> UnicastSubject<T> create(int capacityHint, Action0 onTerminated) {
-        State<T> state = new State<T>(capacityHint, onTerminated);
+        State<T> state = new State<T>(capacityHint, false, onTerminated);
+        return new UnicastSubject<T>(state);
+    }
+
+    /**
+     * Constructs an empty UnicastSubject instance with a capacity hint, delay error
+     * flag and Action0 instance to call if the subject reaches its terminal state
+     * or the single Subscriber unsubscribes mid-sequence.
+     * <p>The capacity hint determines the internal queue's island size: the larger
+     * it is the less frequent allocation will happen if there is no subscriber
+     * or the subscriber hasn't caught up.
+     * @param <T> the input and output value type
+     * @param capacityHint the capacity hint for the internal queue
+     * @param onTerminated the optional callback to call when subject reaches its terminal state
+     *                      or the single Subscriber unsubscribes mid-sequence. It will be called
+     *                      at most once.
+     * @param delayError flag indicating whether to deliver pending next events before error.
+     * @return the created BufferUntilSubscriber instance
+     */
+    public static <T> UnicastSubject<T> create(int capacityHint,
+                                               Action0 onTerminated, boolean delayError) {
+        State<T> state = new State<T>(capacityHint, delayError, onTerminated);
         return new UnicastSubject<T>(state);
     }
 
@@ -86,27 +120,27 @@ public final class UnicastSubject<T> extends Subject<T, T> {
         super(state);
         this.state = state;
     }
-    
+
     @Override
     public void onNext(T t) {
         state.onNext(t);
     }
-    
+
     @Override
     public void onError(Throwable e) {
         state.onError(e);
     }
-    
+
     @Override
     public void onCompleted() {
         state.onCompleted();
     }
-    
+
     @Override
     public boolean hasObservers() {
         return state.subscriber.get() != null;
     }
-    
+
     /**
      * The single-consumption replaying state.
      *
@@ -119,8 +153,8 @@ public final class UnicastSubject<T> extends Subject<T, T> {
         final AtomicReference<Subscriber<? super T>> subscriber;
         /** The queue holding values until the subscriber arrives and catches up. */
         final Queue<Object> queue;
-        /** JCTools queues don't accept nulls. */
-        final NotificationLite<T> nl;
+        /** Deliver pending next events before error. */
+        final boolean delayError;
         /** Atomically set to true on terminal condition. */
         final AtomicReference<Action0> terminateOnce;
         /** In case the source emitted an error. */
@@ -139,12 +173,13 @@ public final class UnicastSubject<T> extends Subject<T, T> {
          * reduce allocation frequency
          * @param onTerminated the action to call when the subject reaches its terminal state or
          * the single subscriber unsubscribes.
+         * @param delayError deliver pending next events before error.
          */
-        public State(int capacityHint, Action0 onTerminated) {
-            this.nl = NotificationLite.instance();
+        public State(int capacityHint, boolean delayError, Action0 onTerminated) {
             this.subscriber = new AtomicReference<Subscriber<? super T>>();
             this.terminateOnce = onTerminated != null ? new AtomicReference<Action0>(onTerminated) : null;
-            
+            this.delayError = delayError;
+
             Queue<Object> q;
             if (capacityHint > 1) {
                 q = UnsafeAccess.isUnsafeAvailable()
@@ -157,7 +192,7 @@ public final class UnicastSubject<T> extends Subject<T, T> {
             }
             this.queue = q;
         }
-        
+
         @Override
         public void onNext(T t) {
             if (!done) {
@@ -171,7 +206,7 @@ public final class UnicastSubject<T> extends Subject<T, T> {
                      */
                     synchronized (this) {
                         if (!caughtUp) {
-                            queue.offer(nl.next(t));
+                            queue.offer(NotificationLite.next(t));
                             stillReplay = true;
                         }
                     }
@@ -191,13 +226,13 @@ public final class UnicastSubject<T> extends Subject<T, T> {
         @Override
         public void onError(Throwable e) {
             if (!done) {
-                
+
                 doTerminate();
-                
+
                 error = e;
                 done = true;
                 if (!caughtUp) {
-                    boolean stillReplay = false;
+                    boolean stillReplay;
                     synchronized (this) {
                         stillReplay = !caughtUp;
                     }
@@ -217,7 +252,7 @@ public final class UnicastSubject<T> extends Subject<T, T> {
 
                 done = true;
                 if (!caughtUp) {
-                    boolean stillReplay = false;
+                    boolean stillReplay;
                     synchronized (this) {
                         stillReplay = !caughtUp;
                     }
@@ -229,7 +264,7 @@ public final class UnicastSubject<T> extends Subject<T, T> {
                 subscriber.get().onCompleted();
             }
         }
-        
+
         @Override
         public void request(long n) {
             if (n < 0L) {
@@ -246,7 +281,7 @@ public final class UnicastSubject<T> extends Subject<T, T> {
         /**
          * Tries to set the given subscriber if not already set, sending an
          * IllegalStateException to the subscriber otherwise.
-         * @param subscriber
+         * @param subscriber the incoming Subscriber instance, not null
          */
         @Override
         public void call(Subscriber<? super T> subscriber) {
@@ -269,31 +304,31 @@ public final class UnicastSubject<T> extends Subject<T, T> {
                 emitting = true;
             }
             Queue<Object> q = queue;
+            boolean delayError = this.delayError;
             for (;;) {
                 Subscriber<? super T> s = subscriber.get();
                 boolean unlimited = false;
                 if (s != null) {
                     boolean d = done;
                     boolean empty = q.isEmpty();
-                    
-                    if (checkTerminated(d, empty, s)) {
+                    if (checkTerminated(d, empty, delayError, s)) {
                         return;
                     }
                     long r = get();
                     unlimited = r == Long.MAX_VALUE;
                     long e = 0L;
-                    
+
                     while (r != 0) {
                         d = done;
                         Object v = q.poll();
                         empty = v == null;
-                        if (checkTerminated(d, empty, s)) {
+                        if (checkTerminated(d, empty, delayError, s)) {
                             return;
                         }
                         if (empty) {
                             break;
                         }
-                        T value = nl.getValue(v);
+                        T value = NotificationLite.getValue(v);
                         try {
                             s.onNext(value);
                         } catch (Throwable ex) {
@@ -309,7 +344,7 @@ public final class UnicastSubject<T> extends Subject<T, T> {
                         addAndGet(-e);
                     }
                 }
-                
+
                 synchronized (this) {
                     if (!missed) {
                         if (unlimited && q.isEmpty()) {
@@ -340,40 +375,45 @@ public final class UnicastSubject<T> extends Subject<T, T> {
             }
             queue.clear();
         }
-        
+
         @Override
         public boolean isUnsubscribed() {
             return done;
         }
-        
+
         /**
          * Checks if one of the terminal conditions have been met: child unsubscribed,
          * an error happened or the source terminated and the queue is empty
-         * @param done
-         * @param empty
-         * @param s
-         * @return
+         * @param done indicates the source has called onCompleted
+         * @param empty indicates if there are no more source values in the queue
+         * @param delayError indicates whether to deliver pending next events before error
+         * @param s the target Subscriber to emit events to
+         * @return true if this Subject reached a terminal state and the drain loop should quit
          */
-        boolean checkTerminated(boolean done, boolean empty, Subscriber<? super T> s) {
+        boolean checkTerminated(boolean done, boolean empty, boolean delayError, Subscriber<? super T> s) {
             if (s.isUnsubscribed()) {
                 queue.clear();
                 return true;
             }
             if (done) {
                 Throwable e = error;
-                if (e != null) {
+                if (e != null && !delayError) {
                     queue.clear();
                     s.onError(e);
                     return true;
-                } else
+                }
                 if (empty) {
-                    s.onCompleted();
+                    if (e != null) {
+                        s.onError(e);
+                    } else {
+                        s.onCompleted();
+                    }
                     return true;
                 }
             }
             return false;
         }
-        
+
         /**
          * Call the optional termination action at most once.
          */

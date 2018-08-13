@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,19 +15,38 @@
  */
 package rx.schedulers;
 
-import rx.Scheduler;
-import rx.annotations.Experimental;
-import rx.internal.schedulers.ExecutorScheduler;
-import rx.internal.schedulers.GenericScheduledExecutorService;
-import rx.internal.schedulers.SchedulerLifecycle;
-import rx.internal.util.RxRingBuffer;
-import rx.plugins.*;
-
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 
+import rx.Scheduler;
+import rx.internal.schedulers.*;
+import rx.plugins.*;
+
 /**
  * Static factory methods for creating Schedulers.
+ * <p>
+ * System configuration properties:
+ * <table border='1'>
+ * <tr><td>Property name</td><td>Description</td><td>Default</td></tr>
+ * <tr>
+ * <td>{@code rx.io-scheduler.keepalive}</td><td>time (in seconds) to keep an unused backing
+ *     thread-pool</td><td>60</td>
+ * </tr>
+ * <tr>
+ * <td>{@code rx.scheduler.max-computation-threads}</td><td>number of threads the
+ *     computation scheduler uses (between 1 and number of available processors)</td><td>
+ *     number of available processors.</td>
+ * </tr>
+ * <tr>
+ * <td>{@code rx.scheduler.jdk6.purge-frequency-millis}</td><td>time (in milliseconds) between calling
+ *     purge on any active backing thread-pool on a Java 6 runtime</td><td>1000</td>
+ * </tr>
+ * <tr>
+ * <td>{@code rx.scheduler.jdk6.purge-force}</td><td> boolean forcing the call to purge on any active
+ *     backing thread-pool</td><td>false</td>
+ * </tr>
+ * </ul>
+ * </table>
  */
 public final class Schedulers {
 
@@ -146,7 +165,7 @@ public final class Schedulers {
      *
      * @return a {@code TestScheduler} meant for debugging
      */
-    public static TestScheduler test() { // NOPMD 
+    public static TestScheduler test() { // NOPMD
         return new TestScheduler();
     }
 
@@ -165,35 +184,31 @@ public final class Schedulers {
      * Resets the current {@link Schedulers} instance.
      * This will re-init the cached schedulers on the next usage,
      * which can be useful in testing.
+     * @since 1.3
      */
-    @Experimental
     public static void reset() {
         Schedulers s = INSTANCE.getAndSet(null);
         if (s != null) {
             s.shutdownInstance();
         }
     }
-    
+
     /**
      * Starts those standard Schedulers which support the SchedulerLifecycle interface.
-     * <p>The operation is idempotent and threadsafe.
+     * <p>The operation is idempotent and thread-safe.
      */
     public static void start() {
         Schedulers s = getInstance();
-        
+
         s.startInstance();
-        
+
         synchronized (s) {
             GenericScheduledExecutorService.INSTANCE.start();
-            
-            RxRingBuffer.SPSC_POOL.start();
-            
-            RxRingBuffer.SPMC_POOL.start();
         }
     }
     /**
      * Shuts down those standard Schedulers which support the SchedulerLifecycle interface.
-     * <p>The operation is idempotent and threadsafe.
+     * <p>The operation is idempotent and thread-safe.
      */
     public static void shutdown() {
         Schedulers s = getInstance();
@@ -201,17 +216,13 @@ public final class Schedulers {
 
         synchronized (s) {
             GenericScheduledExecutorService.INSTANCE.shutdown();
-            
-            RxRingBuffer.SPSC_POOL.shutdown();
-
-            RxRingBuffer.SPMC_POOL.shutdown();
         }
     }
-    
+
     /**
      * Start the instance-specific schedulers.
      */
-    synchronized void startInstance() { // NOPMD 
+    synchronized void startInstance() { // NOPMD
         if (computationScheduler instanceof SchedulerLifecycle) {
             ((SchedulerLifecycle) computationScheduler).start();
         }
@@ -222,11 +233,11 @@ public final class Schedulers {
             ((SchedulerLifecycle) newThreadScheduler).start();
         }
     }
-    
+
     /**
      * Start the instance-specific schedulers.
      */
-    synchronized void shutdownInstance() { // NOPMD 
+    synchronized void shutdownInstance() { // NOPMD
         if (computationScheduler instanceof SchedulerLifecycle) {
             ((SchedulerLifecycle) computationScheduler).shutdown();
         }

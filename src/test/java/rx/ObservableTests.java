@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -94,7 +94,7 @@ public class ObservableTests {
     @Test
     public void testCreate() {
 
-        Observable<String> observable = Observable.create(new OnSubscribe<String>() {
+        Observable<String> observable = Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> Observer) {
@@ -140,7 +140,7 @@ public class ObservableTests {
 
     @Test
     public void testCountError() {
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Observable<String> o = Observable.unsafeCreate(new OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> obsv) {
                 obsv.onError(new RuntimeException());
@@ -152,6 +152,7 @@ public class ObservableTests {
         verify(w, times(1)).onError(any(RuntimeException.class));
     }
 
+    @Test
     public void testTakeFirstWithPredicateOfSome() {
         Observable<Integer> observable = Observable.just(1, 3, 5, 4, 6, 3);
         observable.takeFirst(IS_EVEN).subscribe(w);
@@ -249,7 +250,7 @@ public class ObservableTests {
 
     /**
      * A reduce on an empty Observable and a seed should just pass the seed through.
-     * 
+     *
      * This is confirmed at https://github.com/ReactiveX/RxJava/issues/423#issuecomment-27642456
      */
     @Test
@@ -288,7 +289,7 @@ public class ObservableTests {
         @SuppressWarnings("unchecked")
         Observer<String> observer = mock(Observer.class);
         final RuntimeException re = new RuntimeException("bad impl");
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Observable<String> o = Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> t1) {
@@ -318,9 +319,9 @@ public class ObservableTests {
 
     /**
      * The error from the user provided Observer is not handled by the subscribe method try/catch.
-     * 
+     *
      * It is handled by the AtomicObserver that wraps the provided Observer.
-     * 
+     *
      * Result: Passes (if AtomicObserver functionality exists)
      * @throws InterruptedException on interrupt
      */
@@ -329,7 +330,7 @@ public class ObservableTests {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicInteger count = new AtomicInteger();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -387,14 +388,14 @@ public class ObservableTests {
 
     /**
      * The error from the user provided Observer is handled by the subscribe try/catch because this is synchronous
-     * 
+     *
      * Result: Passes
      */
     @Test
     public void testCustomObservableWithErrorInObserverSynchronous() {
         final AtomicInteger count = new AtomicInteger();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -436,15 +437,15 @@ public class ObservableTests {
 
     /**
      * The error from the user provided Observable is handled by the subscribe try/catch because this is synchronous
-     * 
-     * 
+     *
+     *
      * Result: Passes
      */
     @Test
     public void testCustomObservableWithErrorInObservableSynchronous() {
         final AtomicInteger count = new AtomicInteger();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -483,7 +484,7 @@ public class ObservableTests {
     @Test
     public void testPublishLast() throws InterruptedException {
         final AtomicInteger count = new AtomicInteger();
-        ConnectableObservable<String> connectable = Observable.create(new OnSubscribe<String>() {
+        ConnectableObservable<String> connectable = Observable.unsafeCreate(new OnSubscribe<String>() {
             @Override
             public void call(final Subscriber<? super String> observer) {
                 count.incrementAndGet();
@@ -521,7 +522,7 @@ public class ObservableTests {
     @Test
     public void testReplay() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        ConnectableObservable<String> o = Observable.create(new OnSubscribe<String>() {
+        ConnectableObservable<String> o = Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -576,7 +577,7 @@ public class ObservableTests {
     @Test
     public void testCache() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Observable<String> o = Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -624,7 +625,7 @@ public class ObservableTests {
     @Test
     public void testCacheWithCapacity() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Observable<String> o = Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -671,9 +672,9 @@ public class ObservableTests {
 
     /**
      * https://github.com/ReactiveX/RxJava/issues/198
-     * 
+     *
      * Rx Design Guidelines 5.2
-     * 
+     *
      * "when calling the Subscribe method that only has an onNext argument, the OnError behavior will be
      * to rethrow the exception on the thread that the message comes out from the Observable.
      * The OnCompleted behavior in this case is to do nothing."
@@ -697,20 +698,20 @@ public class ObservableTests {
 
     /**
      * https://github.com/ReactiveX/RxJava/issues/198
-     * 
+     *
      * Rx Design Guidelines 5.2
-     * 
+     *
      * "when calling the Subscribe method that only has an onNext argument, the OnError behavior will be
      * to rethrow the exception on the thread that the message comes out from the Observable.
      * The OnCompleted behavior in this case is to do nothing."
-     * 
+     *
      * @throws InterruptedException
      */
     @Test
     public void testErrorThrownWithoutErrorHandlerAsynchronous() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
-        Observable.create(new OnSubscribe<String>() {
+        Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -885,13 +886,13 @@ public class ObservableTests {
             public void testJustWithScheduler() {
                 TestScheduler scheduler = new TestScheduler();
                 Observable<Integer> observable = Observable.from(Arrays.asList(1, 2)).subscribeOn(scheduler);
-        
+
                 @SuppressWarnings("unchecked")
                 Observer<Integer> observer = mock(Observer.class);
                 observable.subscribe(observer);
-        
+
                 scheduler.advanceTimeBy(1, TimeUnit.MILLISECONDS);
-        
+
                 InOrder inOrder = inOrder(observer);
                 inOrder.verify(observer, times(1)).onNext(1);
                 inOrder.verify(observer, times(1)).onNext(2);
@@ -939,76 +940,21 @@ public class ObservableTests {
         inOrder.verifyNoMoreInteractions();
     }
 
-    @Test
-    public void testCollectToList() {
-        Observable<List<Integer>> o = Observable.just(1, 2, 3).collect(new Func0<List<Integer>>() {
 
-            @Override
-            public List<Integer> call() {
-                return new ArrayList<Integer>();
-            }
-            
-        }, new Action2<List<Integer>, Integer>() {
-
-            @Override
-            public void call(List<Integer> list, Integer v) {
-                list.add(v);
-            }
-        });
-        
-        List<Integer> list =  o.toBlocking().last();
-
-        assertEquals(3, list.size());
-        assertEquals(1, list.get(0).intValue());
-        assertEquals(2, list.get(1).intValue());
-        assertEquals(3, list.get(2).intValue());
-        
-        // test multiple subscribe
-        List<Integer> list2 =  o.toBlocking().last();
-
-        assertEquals(3, list2.size());
-        assertEquals(1, list2.get(0).intValue());
-        assertEquals(2, list2.get(1).intValue());
-        assertEquals(3, list2.get(2).intValue());
-    }
-
-    @Test
-    public void testCollectToString() {
-        String value = Observable.just(1, 2, 3).collect(new Func0<StringBuilder>() {
-
-            @Override
-            public StringBuilder call() {
-                return new StringBuilder();
-            }
-            
-        }, new Action2<StringBuilder, Integer>() {
-
-            @Override
-            public void call(StringBuilder sb, Integer v) {
-                if (sb.length() > 0) {
-                    sb.append("-");
-                }
-                sb.append(v);
-            }
-        }).toBlocking().last().toString();
-
-        assertEquals("1-2-3", value);
-    }
-    
     @Test
     public void testMergeWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Observable.just(1).mergeWith(Observable.just(2)).subscribe(ts);
         ts.assertReceivedOnNext(Arrays.asList(1, 2));
     }
-    
+
     @Test
     public void testConcatWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Observable.just(1).concatWith(Observable.just(2)).subscribe(ts);
         ts.assertReceivedOnNext(Arrays.asList(1, 2));
     }
-    
+
     @Test
     public void testAmbWith() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
@@ -1051,7 +997,7 @@ public class ObservableTests {
         }
         assertEquals(expectedCount, count.get());
     }
-    
+
     @Test
     public void testCompose() {
         TestSubscriber<String> ts = new TestSubscriber<String>();
@@ -1060,31 +1006,31 @@ public class ObservableTests {
             @Override
             public Observable<String> call(Observable<Integer> t1) {
                 return t1.map(new Func1<Integer, String>() {
-                    
+
                     @Override
                     public String call(Integer t1) {
                         return String.valueOf(t1);
                     }
-                    
+
                 });
             }
-            
+
         }).subscribe(ts);
         ts.assertTerminalEvent();
         ts.assertNoErrors();
         ts.assertReceivedOnNext(Arrays.asList("1", "2", "3"));
     }
-    
+
     @Test
     public void testErrorThrownIssue1685() throws Exception {
         Subject<Object, Object> subject = ReplaySubject.create();
 
         ExecutorService exec = Executors.newSingleThreadExecutor();
-        
+
         try {
-            
+
             final AtomicReference<Throwable> err = new AtomicReference<Throwable>();
-            
+
             Scheduler s = Schedulers.from(exec);
             exec.submit(new Runnable() {
                 @Override
@@ -1097,7 +1043,7 @@ public class ObservableTests {
                     });
                 }
             }).get();
-            
+
             subject.subscribe();
 
             Observable.error(new RuntimeException("oops"))
@@ -1105,15 +1051,15 @@ public class ObservableTests {
                 .delay(1, TimeUnit.SECONDS, s)
                 .dematerialize()
                 .subscribe(subject);
-    
+
             subject.materialize().toBlocking().first();
 
             for (int i = 0; i < 50 && err.get() == null; i++) {
                 Thread.sleep(100); // the uncaught exception comes after the terminal event reaches toBlocking
             }
-            
+
             assertNotNull("UncaughtExceptionHandler didn't get anything.", err.get());
-            
+
             System.out.println("Done");
         } finally {
             exec.shutdownNow();
@@ -1124,16 +1070,16 @@ public class ObservableTests {
     public void testEmptyIdentity() {
         assertEquals(Observable.empty(), Observable.empty());
     }
-    
+
     @Test
     public void testEmptyIsEmpty() {
         Observable.<Integer>empty().subscribe(w);
-        
+
         verify(w).onCompleted();
         verify(w, never()).onNext(any(Integer.class));
         verify(w, never()).onError(any(Throwable.class));
     }
-    
+
     @Test // cf. https://github.com/ReactiveX/RxJava/issues/2599
     public void testSubscribingSubscriberAsObserverMaintainsSubscriptionChain() {
         TestSubscriber<Object> subscriber = new TestSubscriber<Object>();
@@ -1143,7 +1089,7 @@ public class ObservableTests {
         subscriber.assertUnsubscribed();
     }
 
-    @Test(expected=OnErrorNotImplementedException.class)
+    @Test(expected = OnErrorNotImplementedException.class)
     public void testForEachWithError() {
         Observable.error(new Exception("boo"))
         //
@@ -1153,33 +1099,18 @@ public class ObservableTests {
                 //do nothing
             }});
     }
-    
-    @Test(expected=IllegalArgumentException.class)
+
+    @Test(expected = IllegalArgumentException.class)
     public void testForEachWithNull() {
         Observable.error(new Exception("boo"))
         //
         .forEach(null);
     }
-    
-    @Test
-    public void testExtend() {
-        final TestSubscriber<Object> subscriber = new TestSubscriber<Object>();
-        final Object value = new Object();
-        Observable.just(value).extend(new Func1<OnSubscribe<Object>,Object>(){
-            @Override
-            public Object call(OnSubscribe<Object> onSubscribe) {
-                onSubscribe.call(subscriber);
-                subscriber.assertNoErrors();
-                subscriber.assertCompleted();
-                subscriber.assertValue(value);
-                return subscriber.getOnNextEvents().get(0);
-            }});
-    }
-    
+
     @Test
     public void nullOnSubscribe() {
-        Observable<Integer> source = Observable.create((OnSubscribe<Integer>)null);
-        
+        Observable<Integer> source = Observable.unsafeCreate((OnSubscribe<Integer>)null);
+
         try {
             source.subscribe();
             fail("Should have thrown IllegalStateException");
@@ -1187,11 +1118,11 @@ public class ObservableTests {
             // expected
         }
     }
-    
+
     @Test
     public void nullObserver() {
         Observable<Integer> source = Observable.just(1);
-        
+
         try {
             source.subscribe((Observer<Integer>)null);
             fail("Should have thrown IllegalStateException");
@@ -1203,7 +1134,7 @@ public class ObservableTests {
     @Test
     public void nullSubscriber() {
         Observable<Integer> source = Observable.just(1);
-        
+
         try {
             source.subscribe((Subscriber<Integer>)null);
             fail("Should have thrown IllegalStateException");
@@ -1216,7 +1147,7 @@ public class ObservableTests {
     @Test
     public void testCacheHint() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger();
-        Observable<String> o = Observable.create(new OnSubscribe<String>() {
+        Observable<String> o = Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(final Subscriber<? super String> observer) {
@@ -1258,7 +1189,7 @@ public class ObservableTests {
         assertTrue("subscriptions did not receive values", latch.await(1000, TimeUnit.MILLISECONDS));
         assertEquals(1, counter.get());
     }
-    
+
     @Test
     public void subscribeWithNull() {
         Action1<Integer> onNext = Actions.empty();
@@ -1284,7 +1215,7 @@ public class ObservableTests {
         } catch (IllegalArgumentException ex) {
             assertEquals("onNext can not be null", ex.getMessage());
         }
-        
+
         try {
             Observable.just(1).subscribe(onNext, null);
             fail("Should have thrown IllegalArgumentException");
@@ -1298,7 +1229,7 @@ public class ObservableTests {
         } catch (IllegalArgumentException ex) {
             assertEquals("onError can not be null", ex.getMessage());
         }
-        
+
         try {
             Observable.just(1).subscribe(onNext, onError, null);
             fail("Should have thrown IllegalArgumentException");
@@ -1306,7 +1237,7 @@ public class ObservableTests {
             assertEquals("onComplete can not be null", ex.getMessage());
         }
     }
-    
+
     @Test
     public void forEachWithNull() {
         Action1<Integer> onNext = Actions.empty();
@@ -1332,7 +1263,7 @@ public class ObservableTests {
         } catch (IllegalArgumentException ex) {
             assertEquals("onNext can not be null", ex.getMessage());
         }
-        
+
         try {
             Observable.just(1).forEach(onNext, null);
             fail("Should have thrown IllegalArgumentException");
@@ -1346,7 +1277,7 @@ public class ObservableTests {
         } catch (IllegalArgumentException ex) {
             assertEquals("onError can not be null", ex.getMessage());
         }
-        
+
         try {
             Observable.just(1).forEach(onNext, onError, null);
             fail("Should have thrown IllegalArgumentException");
@@ -1354,32 +1285,32 @@ public class ObservableTests {
             assertEquals("onComplete can not be null", ex.getMessage());
         }
     }
-    
+
     @Test
     public void observableThrowsWhileSubscriberIsUnsubscribed() {
         TestSubscriber<Object> ts = TestSubscriber.create();
         ts.unsubscribe();
-        
+
         final List<Throwable> list = new ArrayList<Throwable>();
-        
+
         RxJavaHooks.setOnError(new Action1<Throwable>() {
             @Override
             public void call(Throwable t) {
                 list.add(t);
             }
         });
-        
+
         try {
             new FailingObservable().subscribe(ts);
-            
+
             assertEquals(1, list.size());
-            
+
             assertEquals("Forced failure", list.get(0).getMessage());
         } finally {
             RxJavaHooks.reset();
         }
     }
-    
+
     @Test
     public void observableThrowsWhileOnErrorFails() {
         Subscriber<Object> ts = new SafeSubscriber<Object>(new TestSubscriber<Object>()) {
@@ -1388,7 +1319,7 @@ public class ObservableTests {
                 throw new TestException("Forced failure");
             }
         };
-        
+
         try {
             new FailingObservable().subscribe(ts);
             fail("Should have thrown OnErrorFailedException");
@@ -1398,7 +1329,7 @@ public class ObservableTests {
             assertEquals("Forced failure", ex.getCause().getMessage());
         }
     }
-    
+
     @Test
     public void observableThrowsWhileOnErrorFailsUnsafe() {
         Subscriber<Object> ts = new TestSubscriber<Object>() {
@@ -1407,7 +1338,7 @@ public class ObservableTests {
                 throw new TestException("Forced failure");
             }
         };
-        
+
         try {
             new FailingObservable().unsafeSubscribe(ts);
             fail("Should have thrown OnErrorFailedException");
@@ -1417,7 +1348,7 @@ public class ObservableTests {
             assertEquals("Forced failure", ex.getCause().getMessage());
         }
     }
-    
+
     static final class FailingObservable extends Observable<Object> {
 
         protected FailingObservable() {
@@ -1428,9 +1359,9 @@ public class ObservableTests {
                 }
             });
         }
-        
+
     }
-    
+
     @Test
     public void forEachWithError() {
         Action1<Throwable> onError = Actions.empty();
@@ -1442,7 +1373,7 @@ public class ObservableTests {
                 list.add(t);
             }
         }, onError);
-        
+
         Observable.<Integer>error(new TestException()).forEach(new Action1<Integer>() {
             @Override
             public void call(Integer t) {
@@ -1454,7 +1385,7 @@ public class ObservableTests {
                 list.add(t);
             }
         });
-        
+
         Observable.<Integer>empty().forEach(new Action1<Integer>() {
             @Override
             public void call(Integer t) {
@@ -1476,5 +1407,22 @@ public class ObservableTests {
         assertEquals(1, list.get(0));
         assertTrue(list.get(1).toString(), list.get(1) instanceof TestException);
         assertEquals(100, list.get(2));
+    }
+
+    @Test public void toFunctionReceivesObservableReturnsResult() {
+        Observable<String> o = Observable.just("Hi");
+
+        final Object expectedResult = new Object();
+        final AtomicReference<Observable<?>> observableRef = new AtomicReference<Observable<?>>();
+        Object actualResult = o.to(new Func1<Observable<String>, Object>() {
+            @Override
+            public Object call(Observable<String> observable) {
+                observableRef.set(observable);
+                return expectedResult;
+            }
+        });
+
+        assertSame(expectedResult, actualResult);
+        assertSame(o, observableRef.get());
     }
 }

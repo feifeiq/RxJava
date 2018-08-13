@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,6 @@
 package rx.plugins;
 
 import rx.*;
-import rx.annotations.Beta;
 import rx.exceptions.Exceptions;
 
 /**
@@ -31,7 +30,7 @@ import rx.exceptions.Exceptions;
  * See {@link RxJavaPlugins} or the RxJava GitHub Wiki for information on configuring plugins: <a
  * href="https://github.com/ReactiveX/RxJava/wiki/Plugins">https://github.com/ReactiveX/RxJava/wiki/Plugins</a>.
  */
-public abstract class RxJavaErrorHandler { // NOPMD 
+public abstract class RxJavaErrorHandler { // NOPMD
 
     protected static final String ERROR_IN_RENDERING_SUFFIX = ".errorRendering";
 
@@ -41,7 +40,7 @@ public abstract class RxJavaErrorHandler { // NOPMD
      * <p>
      * This should <em>never</em> throw an {@code Exception}. Make sure to try/catch({@code Throwable}) all code
      * inside this method implementation.
-     * 
+     *
      * @param e
      *            the {@code Exception}
      */
@@ -57,17 +56,15 @@ public abstract class RxJavaErrorHandler { // NOPMD
      * <p>
      * Note that primitive types are always rendered as their {@code toString()} value.
      * <p>
-     * If a {@code Throwable} is caught when rendering, this will fallback to the item's classname suffixed by
+     * If a {@code Throwable} is caught when rendering, this will fallback to the item's class name suffixed by
      * {@code ERROR_IN_RENDERING_SUFFIX}.
      *
      * @param item the last emitted item, that caused the exception wrapped in
      *             {@code OnErrorThrowable.OnNextValue}
      * @return a short {@link String} representation of the item if one is known for its type, or null for
      *         default
-     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical with the
-     *        release number)
+     * @since 1.3
      */
-    @Beta
     public final String handleOnNextValueRendering(Object item) {
 
         try {
@@ -87,7 +84,7 @@ public abstract class RxJavaErrorHandler { // NOPMD
      * {@code String} (as large renderings will bloat up the stacktrace). Prefer to try/catch({@code Throwable})
      * all code inside this method implementation.
      * <p>
-     * If a {@code Throwable} is caught when rendering, this will fallback to the item's classname suffixed by
+     * If a {@code Throwable} is caught when rendering, this will fallback to the item's class name suffixed by
      * {@value #ERROR_IN_RENDERING_SUFFIX}.
      *
      * @param item the last emitted item, that caused the exception wrapped in
@@ -95,10 +92,8 @@ public abstract class RxJavaErrorHandler { // NOPMD
      * @return a short {@link String} representation of the item if one is known for its type, or null for
      *         default
      * @throws InterruptedException if the rendering thread is interrupted
-     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical with the
-     *        release number)
+     * @since 1.3
      */
-    @Beta
     protected String render (Object item) throws InterruptedException {
         //do nothing by default
         return null;

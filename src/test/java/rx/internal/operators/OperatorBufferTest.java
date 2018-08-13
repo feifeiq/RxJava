@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,7 +52,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testComplete() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 observer.onCompleted();
@@ -69,7 +69,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testSkipAndCountOverlappingBuffers() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 observer.onNext("one");
@@ -94,7 +94,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testSkipAndCountGaplessBuffers() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 observer.onNext("one");
@@ -119,7 +119,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testSkipAndCountBuffersWithGaps() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 observer.onNext("one");
@@ -144,7 +144,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testTimedAndCount() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 10);
@@ -175,7 +175,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testTimed() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 97);
@@ -208,7 +208,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testObservableBasedOpenerAndCloser() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 10);
@@ -220,7 +220,7 @@ public class OperatorBufferTest {
             }
         });
 
-        Observable<Object> openings = Observable.create(new Observable.OnSubscribe<Object>() {
+        Observable<Object> openings = Observable.unsafeCreate(new Observable.OnSubscribe<Object>() {
             @Override
             public void call(Subscriber<Object> observer) {
                 push(observer, new Object(), 50);
@@ -232,7 +232,7 @@ public class OperatorBufferTest {
         Func1<Object, Observable<Object>> closer = new Func1<Object, Observable<Object>>() {
             @Override
             public Observable<Object> call(Object opening) {
-                return Observable.create(new Observable.OnSubscribe<Object>() {
+                return Observable.unsafeCreate(new Observable.OnSubscribe<Object>() {
                     @Override
                     public void call(Subscriber<? super Object> observer) {
                         push(observer, new Object(), 100);
@@ -256,7 +256,7 @@ public class OperatorBufferTest {
 
     @Test
     public void testObservableBasedCloser() {
-        Observable<String> source = Observable.create(new Observable.OnSubscribe<String>() {
+        Observable<String> source = Observable.unsafeCreate(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> observer) {
                 push(observer, "one", 10);
@@ -271,7 +271,7 @@ public class OperatorBufferTest {
         Func0<Observable<Object>> closer = new Func0<Observable<Object>>() {
             @Override
             public Observable<Object> call() {
-                return Observable.create(new Observable.OnSubscribe<Object>() {
+                return Observable.unsafeCreate(new Observable.OnSubscribe<Object>() {
                     @Override
                     public void call(Subscriber<? super Object> observer) {
                         push(observer, new Object(), 100);
@@ -309,7 +309,7 @@ public class OperatorBufferTest {
     private static class LongTimeAction implements Action1<List<Integer>> {
 
         CountDownLatch latch;
-        boolean fail = false;
+        boolean fail;
 
         public LongTimeAction(CountDownLatch latch) {
             this.latch = latch;
@@ -512,30 +512,30 @@ public class OperatorBufferTest {
     @Test(timeout = 2000)
     public void bufferWithSizeTake1() {
         Observable<Integer> source = Observable.just(1).repeat();
-        
+
         Observable<List<Integer>> result = source.buffer(2).take(1);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
-        
+
         result.subscribe(o);
-        
+
         verify(o).onNext(Arrays.asList(1, 1));
         verify(o).onCompleted();
         verify(o, never()).onError(any(Throwable.class));
     }
-    
+
     @Test(timeout = 2000)
     public void bufferWithSizeSkipTake1() {
         Observable<Integer> source = Observable.just(1).repeat();
-        
+
         Observable<List<Integer>> result = source.buffer(2, 3).take(1);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
-        
+
         result.subscribe(o);
-        
+
         verify(o).onNext(Arrays.asList(1, 1));
         verify(o).onCompleted();
         verify(o, never()).onError(any(Throwable.class));
@@ -543,16 +543,16 @@ public class OperatorBufferTest {
     @Test(timeout = 2000)
     public void bufferWithTimeTake1() {
         Observable<Long> source = Observable.interval(40, 40, TimeUnit.MILLISECONDS, scheduler);
-        
+
         Observable<List<Long>> result = source.buffer(100, TimeUnit.MILLISECONDS, scheduler).take(1);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
-        
+
         result.subscribe(o);
-        
+
         scheduler.advanceTimeBy(5, TimeUnit.SECONDS);
-        
+
         verify(o).onNext(Arrays.asList(0L, 1L));
         verify(o).onCompleted();
         verify(o, never()).onError(any(Throwable.class));
@@ -560,17 +560,17 @@ public class OperatorBufferTest {
     @Test(timeout = 2000)
     public void bufferWithTimeSkipTake2() {
         Observable<Long> source = Observable.interval(40, 40, TimeUnit.MILLISECONDS, scheduler);
-        
+
         Observable<List<Long>> result = source.buffer(100, 60, TimeUnit.MILLISECONDS, scheduler).take(2);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
-        
+
         result.subscribe(o);
-        
+
         scheduler.advanceTimeBy(5, TimeUnit.SECONDS);
-        
+
         inOrder.verify(o).onNext(Arrays.asList(0L, 1L));
         inOrder.verify(o).onNext(Arrays.asList(1L, 2L));
         inOrder.verify(o).onCompleted();
@@ -580,24 +580,24 @@ public class OperatorBufferTest {
     public void bufferWithBoundaryTake2() {
         Observable<Long> boundary = Observable.interval(60, 60, TimeUnit.MILLISECONDS, scheduler);
         Observable<Long> source = Observable.interval(40, 40, TimeUnit.MILLISECONDS, scheduler);
-        
+
         Observable<List<Long>> result = source.buffer(boundary).take(2);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
-        
+
         result.subscribe(o);
-        
+
         scheduler.advanceTimeBy(5, TimeUnit.SECONDS);
-        
+
         inOrder.verify(o).onNext(Arrays.asList(0L));
         inOrder.verify(o).onNext(Arrays.asList(1L));
         inOrder.verify(o).onCompleted();
         verify(o, never()).onError(any(Throwable.class));
-        
+
     }
-    
+
     @Test(timeout = 2000)
     public void bufferWithStartEndBoundaryTake2() {
         Observable<Long> start = Observable.interval(61, 61, TimeUnit.MILLISECONDS, scheduler);
@@ -607,19 +607,19 @@ public class OperatorBufferTest {
                 return Observable.interval(100, 100, TimeUnit.MILLISECONDS, scheduler);
             }
         };
-        
+
         Observable<Long> source = Observable.interval(40, 40, TimeUnit.MILLISECONDS, scheduler);
-        
+
         Observable<List<Long>> result = source.buffer(start, end).take(2);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
-        
+
         result.subscribe(o);
-        
+
         scheduler.advanceTimeBy(5, TimeUnit.SECONDS);
-        
+
         inOrder.verify(o).onNext(Arrays.asList(1L, 2L, 3L));
         inOrder.verify(o).onNext(Arrays.asList(3L, 4L));
         inOrder.verify(o).onCompleted();
@@ -628,68 +628,68 @@ public class OperatorBufferTest {
     @Test
     public void bufferWithSizeThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
-        
+
         Observable<List<Integer>> result = source.buffer(2);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
-        
+
         result.subscribe(o);
-        
+
         source.onNext(1);
         source.onNext(2);
         source.onNext(3);
         source.onError(new TestException());
-        
+
         inOrder.verify(o).onNext(Arrays.asList(1, 2));
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(Arrays.asList(3));
         verify(o, never()).onCompleted();
-                
+
     }
-    
+
     @Test
     public void bufferWithTimeThrows() {
         PublishSubject<Integer> source = PublishSubject.create();
-        
+
         Observable<List<Integer>> result = source.buffer(100, TimeUnit.MILLISECONDS, scheduler);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
-        
+
         result.subscribe(o);
-        
+
         source.onNext(1);
         source.onNext(2);
         scheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS);
         source.onNext(3);
         source.onError(new TestException());
         scheduler.advanceTimeBy(100, TimeUnit.MILLISECONDS);
-        
+
         inOrder.verify(o).onNext(Arrays.asList(1, 2));
         inOrder.verify(o).onError(any(TestException.class));
         inOrder.verifyNoMoreInteractions();
         verify(o, never()).onNext(Arrays.asList(3));
         verify(o, never()).onCompleted();
-                
+
     }
     @Test
     public void bufferWithTimeAndSize() {
         Observable<Long> source = Observable.interval(30, 30, TimeUnit.MILLISECONDS, scheduler);
-        
+
         Observable<List<Long>> result = source.buffer(100, TimeUnit.MILLISECONDS, 2, scheduler).take(3);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
         InOrder inOrder = inOrder(o);
-        
+
         result.subscribe(o);
-        
+
         scheduler.advanceTimeBy(5, TimeUnit.SECONDS);
-        
+
         inOrder.verify(o).onNext(Arrays.asList(0L, 1L));
         inOrder.verify(o).onNext(Arrays.asList(2L));
         inOrder.verify(o).onCompleted();
@@ -698,7 +698,7 @@ public class OperatorBufferTest {
     @Test
     public void bufferWithStartEndStartThrows() {
         PublishSubject<Integer> start = PublishSubject.create();
-        
+
         Func1<Integer, Observable<Integer>> end = new Func1<Integer, Observable<Integer>>() {
             @Override
             public Observable<Integer> call(Integer t1) {
@@ -709,17 +709,17 @@ public class OperatorBufferTest {
         PublishSubject<Integer> source = PublishSubject.create();
 
         Observable<List<Integer>> result = source.buffer(start, end);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
-        
+
         result.subscribe(o);
-        
+
         start.onNext(1);
         source.onNext(1);
         source.onNext(2);
         start.onError(new TestException());
-        
+
         verify(o, never()).onNext(any());
         verify(o, never()).onCompleted();
         verify(o).onError(any(TestException.class));
@@ -727,7 +727,7 @@ public class OperatorBufferTest {
     @Test
     public void bufferWithStartEndEndFunctionThrows() {
         PublishSubject<Integer> start = PublishSubject.create();
-        
+
         Func1<Integer, Observable<Integer>> end = new Func1<Integer, Observable<Integer>>() {
             @Override
             public Observable<Integer> call(Integer t1) {
@@ -738,16 +738,16 @@ public class OperatorBufferTest {
         PublishSubject<Integer> source = PublishSubject.create();
 
         Observable<List<Integer>> result = source.buffer(start, end);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
-        
+
         result.subscribe(o);
-        
+
         start.onNext(1);
         source.onNext(1);
         source.onNext(2);
-        
+
         verify(o, never()).onNext(any());
         verify(o, never()).onCompleted();
         verify(o).onError(any(TestException.class));
@@ -755,7 +755,7 @@ public class OperatorBufferTest {
     @Test
     public void bufferWithStartEndEndThrows() {
         PublishSubject<Integer> start = PublishSubject.create();
-        
+
         Func1<Integer, Observable<Integer>> end = new Func1<Integer, Observable<Integer>>() {
             @Override
             public Observable<Integer> call(Integer t1) {
@@ -766,16 +766,16 @@ public class OperatorBufferTest {
         PublishSubject<Integer> source = PublishSubject.create();
 
         Observable<List<Integer>> result = source.buffer(start, end);
-        
+
         @SuppressWarnings("unchecked")
         Observer<Object> o = mock(Observer.class);
-        
+
         result.subscribe(o);
-        
+
         start.onNext(1);
         source.onNext(1);
         source.onNext(2);
-        
+
         verify(o, never()).onNext(any());
         verify(o, never()).onCompleted();
         verify(o).onError(any(TestException.class));
@@ -786,7 +786,7 @@ public class OperatorBufferTest {
         TestSubscriber<List<Integer>> ts = new TestSubscriber<List<Integer>>();
         ts.requestMore(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new Observable.OnSubscribe<Integer>() {
+        Observable.unsafeCreate(new Observable.OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -811,7 +811,7 @@ public class OperatorBufferTest {
     public void testProducerRequestThroughBufferWithSize2() {
         TestSubscriber<List<Integer>> ts = new TestSubscriber<List<Integer>>();
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new Observable.OnSubscribe<Integer>() {
+        Observable.unsafeCreate(new Observable.OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -834,7 +834,7 @@ public class OperatorBufferTest {
         TestSubscriber<List<Integer>> ts = new TestSubscriber<List<Integer>>();
         ts.requestMore(3);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new Observable.OnSubscribe<Integer>() {
+        Observable.unsafeCreate(new Observable.OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -858,7 +858,7 @@ public class OperatorBufferTest {
     public void testProducerRequestThroughBufferWithSize4() {
         TestSubscriber<List<Integer>> ts = new TestSubscriber<List<Integer>>();
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new Observable.OnSubscribe<Integer>() {
+        Observable.unsafeCreate(new Observable.OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -882,7 +882,7 @@ public class OperatorBufferTest {
         TestSubscriber<List<Integer>> ts = new TestSubscriber<List<Integer>>();
         ts.requestMore(Long.MAX_VALUE / 2);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new Observable.OnSubscribe<Integer>() {
+        Observable.unsafeCreate(new Observable.OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -905,7 +905,7 @@ public class OperatorBufferTest {
         TestSubscriber<List<Integer>> ts = new TestSubscriber<List<Integer>>();
         ts.requestMore(Long.MAX_VALUE / 2);
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new Observable.OnSubscribe<Integer>() {
+        Observable.unsafeCreate(new Observable.OnSubscribe<Integer>() {
 
             @Override
             public void call(Subscriber<? super Integer> s) {
@@ -926,7 +926,7 @@ public class OperatorBufferTest {
     @Test
     public void testProducerRequestOverflowThroughBufferWithSize3() {
         final AtomicLong requested = new AtomicLong();
-        Observable.create(new Observable.OnSubscribe<Integer>() {
+        Observable.unsafeCreate(new Observable.OnSubscribe<Integer>() {
 
             @Override
             public void call(final Subscriber<? super Integer> s) {
@@ -971,8 +971,8 @@ public class OperatorBufferTest {
     public void testBufferWithTimeDoesntUnsubscribeDownstream() throws InterruptedException {
         @SuppressWarnings("unchecked")
         final Observer<Object> o = mock(Observer.class);
-        
-        
+
+
         final CountDownLatch cdl = new CountDownLatch(1);
         Subscriber<Object> s = new Subscriber<Object>() {
             @Override
@@ -990,33 +990,33 @@ public class OperatorBufferTest {
                 cdl.countDown();
             }
         };
-        
+
         Observable.range(1, 1).delay(1, TimeUnit.SECONDS).buffer(2, TimeUnit.SECONDS).unsafeSubscribe(s);
-        
+
         cdl.await();
-        
+
         verify(o).onNext(Arrays.asList(1));
         verify(o).onCompleted();
         verify(o, never()).onError(any(Throwable.class));
-        
+
         assertFalse(s.isUnsubscribed());
     }
-    
+
     @SuppressWarnings("unchecked")
     @Test
     public void testPostCompleteBackpressure() {
         Observable<List<Integer>> source = Observable.range(1, 10).buffer(3, 1);
-        
+
         TestSubscriber<List<Integer>> ts = TestSubscriber.create(0L);
-        
+
         source.subscribe(ts);
-        
+
         ts.assertNoValues();
         ts.assertNotCompleted();
         ts.assertNoErrors();
-        
+
         ts.requestMore(7);
-        
+
         ts.assertValues(
                 Arrays.asList(1, 2, 3),
                 Arrays.asList(2, 3, 4),
@@ -1043,7 +1043,7 @@ public class OperatorBufferTest {
         );
         ts.assertNotCompleted();
         ts.assertNoErrors();
-        
+
         ts.requestMore(1);
 
         ts.assertValues(
@@ -1059,7 +1059,7 @@ public class OperatorBufferTest {
         );
         ts.assertNotCompleted();
         ts.assertNoErrors();
-        
+
         ts.requestMore(1);
 
         ts.assertValues(
@@ -1077,35 +1077,35 @@ public class OperatorBufferTest {
         ts.assertCompleted();
         ts.assertNoErrors();
     }
-    
+
     @SuppressWarnings("unchecked")
     @Test
     public void timeAndSkipOverlap() {
-        
+
         PublishSubject<Integer> ps = PublishSubject.create();
-        
+
         TestSubscriber<List<Integer>> ts = TestSubscriber.create();
-        
+
         ps.buffer(2, 1, TimeUnit.SECONDS, scheduler).subscribe(ts);
-        
+
         ps.onNext(1);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        
+
         ps.onNext(2);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
         ps.onNext(3);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
         ps.onNext(4);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        
+
         ps.onCompleted();
-        
+
         ts.assertValues(
                 Arrays.asList(1, 2),
                 Arrays.asList(2, 3),
@@ -1113,84 +1113,84 @@ public class OperatorBufferTest {
                 Arrays.asList(4),
                 Collections.<Integer>emptyList()
         );
-        
+
         ts.assertNoErrors();
         ts.assertCompleted();
     }
-    
+
     @SuppressWarnings("unchecked")
     @Test
     public void timeAndSkipSkip() {
-        
+
         PublishSubject<Integer> ps = PublishSubject.create();
-        
+
         TestSubscriber<List<Integer>> ts = TestSubscriber.create();
-        
+
         ps.buffer(2, 3, TimeUnit.SECONDS, scheduler).subscribe(ts);
-        
+
         ps.onNext(1);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        
+
         ps.onNext(2);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
         ps.onNext(3);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
 
         ps.onNext(4);
-        
+
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        
+
         ps.onCompleted();
-        
+
         ts.assertValues(
                 Arrays.asList(1, 2),
                 Arrays.asList(4)
         );
-        
+
         ts.assertNoErrors();
         ts.assertCompleted();
     }
-    
+
     @SuppressWarnings("unchecked")
     @Test
     public void timeAndSkipOverlapScheduler() {
-        
+
         RxJavaHooks.setOnComputationScheduler(new Func1<Scheduler, Scheduler>() {
             @Override
             public Scheduler call(Scheduler t) {
                 return scheduler;
             }
         });
-        
+
         try {
             PublishSubject<Integer> ps = PublishSubject.create();
-            
+
             TestSubscriber<List<Integer>> ts = TestSubscriber.create();
-            
+
             ps.buffer(2, 1, TimeUnit.SECONDS).subscribe(ts);
-            
+
             ps.onNext(1);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-            
+
             ps.onNext(2);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-    
+
             ps.onNext(3);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-    
+
             ps.onNext(4);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-            
+
             ps.onCompleted();
-            
+
             ts.assertValues(
                     Arrays.asList(1, 2),
                     Arrays.asList(2, 3),
@@ -1198,14 +1198,14 @@ public class OperatorBufferTest {
                     Arrays.asList(4),
                     Collections.<Integer>emptyList()
             );
-            
+
             ts.assertNoErrors();
             ts.assertCompleted();
         } finally {
             RxJavaHooks.reset();
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     @Test
     public void timeAndSkipSkipDefaultScheduler() {
@@ -1215,38 +1215,38 @@ public class OperatorBufferTest {
                 return scheduler;
             }
         });
-        
+
         try {
-        
+
             PublishSubject<Integer> ps = PublishSubject.create();
-            
+
             TestSubscriber<List<Integer>> ts = TestSubscriber.create();
-            
+
             ps.buffer(2, 3, TimeUnit.SECONDS).subscribe(ts);
-            
+
             ps.onNext(1);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-            
+
             ps.onNext(2);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-    
+
             ps.onNext(3);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-    
+
             ps.onNext(4);
-            
+
             scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-            
+
             ps.onCompleted();
-            
+
             ts.assertValues(
                     Arrays.asList(1, 2),
                     Arrays.asList(4)
             );
-            
+
             ts.assertNoErrors();
             ts.assertCompleted();
         } finally {

@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -81,7 +81,8 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
     /**
      * Creates a new instance of the operator with the given delayError and maxConcurrency settings.
      * @param <T> the value type
-     * @param delayErrors
+     * @param delayErrors if true, errors are delayed till all sources terminate, if false the first error will
+     *                    be emitted and all sequences unsubscribed
      * @param maxConcurrent the maximum number of concurrent subscriptions or Integer.MAX_VALUE for unlimited
      * @return the Operator instance with the given settings
      */
@@ -105,10 +106,10 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         MergeSubscriber<T> subscriber = new MergeSubscriber<T>(child, delayErrors, maxConcurrent);
         MergeProducer<T> producer = new MergeProducer<T>(subscriber);
         subscriber.producer = producer;
-        
+
         child.add(subscriber);
         child.setProducer(producer);
-        
+
         return subscriber;
     }
 
@@ -117,11 +118,11 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         private static final long serialVersionUID = -1214379189873595503L;
 
         final MergeSubscriber<T> subscriber;
-        
+
         public MergeProducer(MergeSubscriber<T> subscriber) {
             this.subscriber = subscriber;
         }
-        
+
         @Override
         public void request(long n) {
             if (n > 0) {
@@ -130,7 +131,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 }
                 BackpressureUtils.getAndAddRequest(this, n);
                 subscriber.emit();
-            } else 
+            } else
             if (n < 0) {
                 throw new IllegalArgumentException("n >= 0 required");
             }
@@ -139,58 +140,55 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
             return addAndGet(-n);
         }
     }
-    
+
     /**
-     * The subscriber that observes Observables. 
+     * The subscriber that observes Observables.
      * @param <T> the value type
      */
     static final class MergeSubscriber<T> extends Subscriber<Observable<? extends T>> {
         final Subscriber<? super T> child;
         final boolean delayErrors;
         final int maxConcurrent;
-        
+
         MergeProducer<T> producer;
-        
+
         volatile Queue<Object> queue;
-        
+
         /** Tracks the active subscriptions to sources. */
         volatile CompositeSubscription subscriptions;
         /** Due to the emission loop, we need to store errors somewhere if !delayErrors. */
         volatile ConcurrentLinkedQueue<Throwable> errors;
-        
-        final NotificationLite<T> nl;
-        
+
         volatile boolean done;
-        
+
         /** Guarded by this. */
         boolean emitting;
         /** Guarded by this. */
         boolean missed;
-        
+
         final Object innerGuard;
         /** Copy-on-write array, guarded by innerGuard. */
         volatile InnerSubscriber<?>[] innerSubscribers;
-        
+
         /** Used to generate unique InnerSubscriber IDs. Modified from onNext only. */
         long uniqueId;
-        
+
         /** Which was the last InnerSubscriber that emitted? Accessed if emitting == true. */
         long lastId;
         /** What was its index in the innerSubscribers array? Accessed if emitting == true. */
         int lastIndex;
-        
-        /** An empty array to avoid creating new empty arrays in removeInner. */ 
+
+        /** An empty array to avoid creating new empty arrays in removeInner. */
         static final InnerSubscriber<?>[] EMPTY = new InnerSubscriber<?>[0];
 
         final int scalarEmissionLimit;
-        
+
         int scalarEmissionCount;
-        
+
         public MergeSubscriber(Subscriber<? super T> child, boolean delayErrors, int maxConcurrent) {
             this.child = child;
             this.delayErrors = delayErrors;
             this.maxConcurrent = maxConcurrent;
-            this.nl = NotificationLite.instance();
             this.innerGuard = new Object();
             this.innerSubscribers = EMPTY;
             if (maxConcurrent == Integer.MAX_VALUE) {
@@ -201,7 +199,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 request(maxConcurrent);
             }
         }
-        
+
         Queue<Throwable> getOrCreateErrorQueue() {
             ConcurrentLinkedQueue<Throwable> q = errors;
             if (q == null) {
@@ -233,7 +231,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
             }
             return c;
         }
-        
+
         @Override
         public void onNext(Observable<? extends T> t) {
             if (t == null) {
@@ -251,7 +249,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 emit();
             }
         }
-        
+
         void emitEmpty() {
             int produced = scalarEmissionCount + 1;
             if (produced == scalarEmissionLimit) {
@@ -261,7 +259,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 scalarEmissionCount = produced;
             }
         }
-        
+
         private void reportError() {
             List<Throwable> list = new ArrayList<Throwable>(errors);
             if (list.size() == 1) {
@@ -270,7 +268,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 child.onError(new CompositeException(list));
             }
         }
-        
+
         @Override
         public void onError(Throwable e) {
             getOrCreateErrorQueue().offer(e);
@@ -282,7 +280,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
             done = true;
             emit();
         }
-        
+
         void addInner(InnerSubscriber<T> inner) {
             getOrCreateComposite().add(inner);
             synchronized (innerGuard) {
@@ -326,7 +324,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 innerSubscribers = b;
             }
         }
-        
+
         /**
          * Tries to emit the value directly to the child if
          * no concurrent emission is happening at the moment.
@@ -334,9 +332,9 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
          * Since the scalar-value queue optimization applies
          * to both the main source and the inner subscribers,
          * we handle things in a shared manner.
-         * 
-         * @param subscriber
-         * @param value
+         *
+         * @param subscriber the subscriber to one of the inner Observables running
+         * @param value the value that inner Observable produced
          */
         void tryEmit(InnerSubscriber<T> subscriber, T value) {
             boolean success = false;
@@ -352,9 +350,16 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 }
             }
             if (success) {
-                emitScalar(subscriber, value, r);
+                RxRingBuffer subscriberQueue = subscriber.queue;
+                if (subscriberQueue == null || subscriberQueue.isEmpty()) {
+                    emitScalar(subscriber, value, r);
+                } else {
+                    queueScalar(subscriber, value);
+                    emitLoop();
+                }
             } else {
                 queueScalar(subscriber, value);
+                emit();
             }
         }
 
@@ -371,19 +376,16 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 subscriber.queue = q;
             }
             try {
-                q.onNext(nl.next(value));
+                q.onNext(NotificationLite.next(value));
             } catch (MissingBackpressureException ex) {
                 subscriber.unsubscribe();
                 subscriber.onError(ex);
-                return;
             } catch (IllegalStateException ex) {
                 if (!subscriber.isUnsubscribed()) {
                     subscriber.unsubscribe();
                     subscriber.onError(ex);
                 }
-                return;
             }
-            emit();
         }
 
         protected void emitScalar(InnerSubscriber<T> subscriber, T value, long r) {
@@ -425,7 +427,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
              * In the synchronized block below request(1) we check
              * if there was a concurrent emission attempt and if there was,
              * we stay in emission mode and enter the emission loop
-             * which will take care all the queued up state and 
+             * which will take care all the queued up state and
              * emission possibilities.
              */
             emitLoop();
@@ -434,7 +436,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         public void requestMore(long n) {
             request(n);
         }
-        
+
         /**
          * Tries to emit the value directly to the child if
          * no concurrent emission is happening at the moment.
@@ -442,9 +444,8 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
          * Since the scalar-value queue optimization applies
          * to both the main source and the inner subscribers,
          * we handle things in a shared manner.
-         * 
-         * @param subscriber
-         * @param value
+         *
+         * @param value the scalar value the main Observable emitted through {@code just()}
          */
         void tryEmit(T value) {
             boolean success = false;
@@ -460,9 +461,16 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 }
             }
             if (success) {
-                emitScalar(value, r);
+                Queue<Object> mainQueue = queue;
+                if (mainQueue == null || mainQueue.isEmpty()) {
+                    emitScalar(value, r);
+                } else {
+                    queueScalar(value);
+                    emitLoop();
+                }
             } else {
                 queueScalar(value);
+                emit();
             }
         }
 
@@ -490,12 +498,10 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 }
                 this.queue = q;
             }
-            if (!q.offer(nl.next(value))) {
+            if (!q.offer(NotificationLite.next(value))) {
                 unsubscribe();
                 onError(OnErrorThrowable.addValueAsLastCause(new MissingBackpressureException(), value));
-                return;
             }
-            emit();
         }
 
         protected void emitScalar(T value, long r) {
@@ -516,7 +522,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 if (r != Long.MAX_VALUE) {
                     producer.produced(1);
                 }
-                
+
                 int produced = scalarEmissionCount + 1;
                 if (produced == scalarEmissionLimit) {
                     scalarEmissionCount = 0;
@@ -524,7 +530,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 } else {
                     scalarEmissionCount = produced;
                 }
-                
+
                 // check if some state changed while emitting
                 synchronized (this) {
                     skipFinal = true;
@@ -545,12 +551,12 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
              * In the synchronized block below request(1) we check
              * if there was a concurrent emission attempt and if there was,
              * we stay in emission mode and enter the emission loop
-             * which will take care all the queued up state and 
+             * which will take care all the queued up state and
              * emission possibilities.
              */
             emitLoop();
         }
-        
+
         void emit() {
             synchronized (this) {
                 if (emitting) {
@@ -575,10 +581,10 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                         return;
                     }
                     Queue<Object> svq = queue;
-                    
+
                     long r = producer.get();
                     boolean unbounded = r == Long.MAX_VALUE;
-                    
+
                     // count the number of 'completed' sources to replenish them in batches
                     int replenishMain = 0;
 
@@ -597,7 +603,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                                 if (o == null) {
                                     break;
                                 }
-                                T v = nl.getValue(o);
+                                T v = NotificationLite.getValue(o);
                                 // if child throws, report bounce it back immediately
                                 try {
                                     child.onNext(v);
@@ -641,8 +647,8 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                     // read the current set of inner subscribers
                     InnerSubscriber<?>[] inner = innerSubscribers;
                     int n = inner.length;
-                    
-                    // check if upstream is done, there are no scalar values 
+
+                    // check if upstream is done, there are no scalar values
                     // and no active inner subscriptions
                     if (d && (svq == null || svq.isEmpty()) && n == 0) {
                         Queue<Throwable> e = errors;
@@ -654,13 +660,13 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                         skipFinal = true;
                         return;
                     }
-                    
+
                     boolean innerCompleted = false;
                     if (n > 0) {
                         // let's continue the round-robin emission from last location
                         long startId = lastId;
                         int index = lastIndex;
-                        
+
                         // in case there were changes in the array or the index
                         // no longer points to the inner with the cached id
                         if (n <= index || inner[index].id != startId) {
@@ -685,7 +691,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                             lastIndex = j;
                             lastId = inner[j].id;
                         }
-                        
+
                         int j = index;
                         // loop through all sources once to avoid delaying any new sources too much
                         for (int i = 0; i < n; i++) {
@@ -696,7 +702,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                             }
                             @SuppressWarnings("unchecked")
                             InnerSubscriber<T> is = (InnerSubscriber<T>)inner[j];
-                            
+
                             Object o = null;
                             for (;;) {
                                 int produced = 0;
@@ -714,7 +720,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                                     if (o == null) {
                                         break;
                                     }
-                                    T v = nl.getValue(o);
+                                    T v = NotificationLite.getValue(o);
                                     // if child throws, report bounce it back immediately
                                     try {
                                         child.onNext(v);
@@ -759,7 +765,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                             if (r == 0) {
                                 break;
                             }
-                            
+
                             // wrap around in round-robin fashion
                             j++;
                             if (j == n) {
@@ -770,7 +776,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                         lastIndex = j;
                         lastId = inner[j].id;
                     }
-                    
+
                     if (replenishMain > 0) {
                         request(replenishMain);
                     }
@@ -796,7 +802,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
                 }
             }
         }
-        
+
         /**
          * Check if the operator reached some terminal state: child unsubscribed,
          * an error was reported and we don't delay errors.
@@ -825,7 +831,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         volatile RxRingBuffer queue;
         int outstanding;
         static final int LIMIT = RxRingBuffer.SIZE / 4;
-        
+
         public InnerSubscriber(MergeSubscriber<T> parent, long id) {
             this.parent = parent;
             this.id = id;
@@ -841,8 +847,11 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         }
         @Override
         public void onError(Throwable e) {
-            done = true;
+            // Need to queue the error first before setting done, so that after emitLoop() removes the subscriber,
+            // it is guaranteed to notice the error. Otherwise it would be possible that inner subscribers count was 0,
+            // and at the same time the error queue was empty.
             parent.getOrCreateErrorQueue().offer(e);
+            done = true;
             parent.emit();
         }
         @Override

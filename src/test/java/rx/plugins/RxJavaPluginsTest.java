@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@ package rx.plugins;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
+import java.security.Permission;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -72,7 +73,7 @@ public class RxJavaPluginsTest {
     public static class RxJavaErrorHandlerTestImpl extends RxJavaErrorHandler {
 
         private volatile Throwable e;
-        private volatile int count = 0;
+        private volatile int count;
 
         @Override
         public void handleError(Throwable e) {
@@ -263,31 +264,31 @@ public class RxJavaPluginsTest {
         return RxJavaPlugins.class.getPackage()
                                   .getName() + "." + RxJavaPluginsTest.class.getSimpleName() + "$" + cls.getSimpleName();
     }
-    
+
     @Test
     public void testShortPluginDiscovery() {
         Properties props = new Properties();
-        
+
         props.setProperty("rxjava.plugin.1.class", "Map");
         props.setProperty("rxjava.plugin.1.impl", "java.util.HashMap");
 
         props.setProperty("rxjava.plugin.xyz.class", "List");
         props.setProperty("rxjava.plugin.xyz.impl", "java.util.ArrayList");
 
-        
+
         Object o = RxJavaPlugins.getPluginImplementationViaProperty(Map.class, props);
-        
+
         assertTrue("" + o, o instanceof HashMap);
-        
+
         o = RxJavaPlugins.getPluginImplementationViaProperty(List.class, props);
-        
+
         assertTrue("" + o, o instanceof ArrayList);
     }
-    
+
     @Test(expected = RuntimeException.class)
     public void testShortPluginDiscoveryMissing() {
         Properties props = new Properties();
-        
+
         props.setProperty("rxjava.plugin.1.class", "Map");
 
         RxJavaPlugins.getPluginImplementationViaProperty(Map.class, props);
@@ -343,5 +344,76 @@ public class RxJavaPluginsTest {
         });
         assertEquals(re, errorHandler.e);
         assertEquals(1, errorHandler.count);
+    }
+
+    @Test
+    public void systemPropertiesSecurityException() {
+        assertNull(RxJavaPlugins.getPluginImplementationViaProperty(Object.class, new Properties() {
+
+            private static final long serialVersionUID = -4291534158508255616L;
+
+            @Override
+            public Set<java.util.Map.Entry<Object, Object>> entrySet() {
+                return new HashSet<java.util.Map.Entry<Object, Object>>() {
+
+                    private static final long serialVersionUID = -7714005655772619143L;
+
+                    @Override
+                    public Iterator<java.util.Map.Entry<Object, Object>> iterator() {
+                        return new Iterator<java.util.Map.Entry<Object, Object>>() {
+                            @Override
+                            public boolean hasNext() {
+                                return true;
+                            }
+
+                            @Override
+                            public Map.Entry<Object,Object> next() {
+                                throw new SecurityException();
+                            };
+
+                            @Override
+                            public void remove() {
+                                throw new UnsupportedOperationException();
+                            }
+                        };
+                    }
+                };
+            }
+
+            @Override
+            public synchronized Object clone() {
+                return this;
+            }
+        }));
+    }
+
+    @Test
+    public void securityManagerDenySystemProperties() {
+        SecurityManager old = System.getSecurityManager();
+        try {
+            SecurityManager sm = new SecurityManager() {
+                @Override
+                public void checkPropertiesAccess() {
+                    throw new SecurityException();
+                }
+
+                @Override
+                public void checkPermission(Permission perm) {
+                    // allow restoring the security manager
+                }
+
+                @Override
+                public void checkPermission(Permission perm, Object context) {
+                    // allow restoring the security manager
+                }
+            };
+
+            System.setSecurityManager(sm);
+            assertTrue(RxJavaPlugins.getSystemPropertiesSafe().isEmpty());
+        } finally {
+            System.setSecurityManager(old);
+        }
+
+        assertFalse(RxJavaPlugins.getSystemPropertiesSafe().isEmpty());
     }
 }

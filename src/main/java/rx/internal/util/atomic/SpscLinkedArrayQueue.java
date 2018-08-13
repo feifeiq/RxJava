@@ -23,14 +23,14 @@ import rx.internal.util.unsafe.Pow2;
 
 
 /*
- * The code was inspired by the similarly named JCTools class: 
+ * The code was inspired by the similarly named JCTools class:
  * https://github.com/JCTools/JCTools/blob/master/jctools-core/src/main/java/org/jctools/queues/atomic
  */
 
 /**
  * A single-producer single-consumer array-backed queue which can allocate new arrays in case the consumer is slower
  * than the producer.
- * 
+ *
  * @param <T> the element type, not null
  */
 public final class SpscLinkedArrayQueue<T> implements Queue<T> {
@@ -43,7 +43,7 @@ public final class SpscLinkedArrayQueue<T> implements Queue<T> {
     int consumerMask;
     AtomicReferenceArray<Object> consumerBuffer;
     final AtomicLong consumerIndex;
-    
+
     private static final Object HAS_NEXT = new Object();
 
     public SpscLinkedArrayQueue(final int bufferSize) {
@@ -78,7 +78,7 @@ public final class SpscLinkedArrayQueue<T> implements Queue<T> {
             final int lookAheadStep = producerLookAheadStep;
             // go around the buffer or resize if full (unless we hit max capacity)
             int lookAheadElementOffset = calcWrappedOffset(index + lookAheadStep, mask);
-            if (null == lvElement(buffer, lookAheadElementOffset)) {// LoadLoad
+            if (null == lvElement(buffer, lookAheadElementOffset)) { // LoadLoad
                 producerLookAhead = index + lookAheadStep - 1; // joy, there's plenty of room
                 return writeToQueue(buffer, e, index, offset);
             } else if (null == lvElement(buffer, calcWrappedOffset(index + 1, mask))) { // buffer is not full
@@ -175,10 +175,10 @@ public final class SpscLinkedArrayQueue<T> implements Queue<T> {
 
         return (T) e;
     }
-    
+
     @Override
     public void clear() {
-        while (poll() != null || !isEmpty()); // NOPMD 
+        while (poll() != null || !isEmpty()) { } // NOPMD
     }
 
     @SuppressWarnings("unchecked")
@@ -206,7 +206,7 @@ public final class SpscLinkedArrayQueue<T> implements Queue<T> {
             }
         }
     }
-    
+
     @Override
     public boolean isEmpty() {
         return lvProducerIndex() == lvConsumerIndex();
@@ -313,21 +313,21 @@ public final class SpscLinkedArrayQueue<T> implements Queue<T> {
     public T element() {
         throw new UnsupportedOperationException();
     }
-    
+
     /**
-     * Offer two elements at the same time.
+     * Atomically offer two elements.
      * <p>Don't use the regular offer() with this at all!
-     * @param first
-     * @param second
+     * @param first the first value
+     * @param second the second value
      * @return always true
      */
     public boolean offer(T first, T second) {
         final AtomicReferenceArray<Object> buffer = producerBuffer;
         final long p = lvProducerIndex();
         final int m = producerMask;
-        
+
         int pi = calcWrappedOffset(p + 2, m);
-        
+
         if (null == lvElement(buffer, pi)) {
             pi = calcWrappedOffset(p, m);
             soElement(buffer, pi + 1, second);
@@ -337,14 +337,14 @@ public final class SpscLinkedArrayQueue<T> implements Queue<T> {
             final int capacity = buffer.length();
             final AtomicReferenceArray<Object> newBuffer = new AtomicReferenceArray<Object>(capacity);
             producerBuffer = newBuffer;
-            
+
             pi = calcWrappedOffset(p, m);
             soElement(newBuffer, pi + 1, second);// StoreStore
             soElement(newBuffer, pi, first);
             soNext(buffer, newBuffer);
-            
+
             soElement(buffer, pi, HAS_NEXT); // new buffer is visible after element is
-            
+
             soProducerIndex(p + 2);// this ensures correctness on 32bit platforms
         }
 

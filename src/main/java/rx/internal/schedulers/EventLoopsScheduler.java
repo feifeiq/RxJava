@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,16 +33,16 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
     static final int MAX_THREADS;
     static {
         int maxThreads = Integer.getInteger(KEY_MAX_THREADS, 0);
-        int ncpu = Runtime.getRuntime().availableProcessors();
+        int cpuCount = Runtime.getRuntime().availableProcessors();
         int max;
-        if (maxThreads <= 0 || maxThreads > ncpu) {
-            max = ncpu;
+        if (maxThreads <= 0 || maxThreads > cpuCount) {
+            max = cpuCount;
         } else {
             max = maxThreads;
         }
         MAX_THREADS = max;
     }
-    
+
     static final PoolWorker SHUTDOWN_WORKER;
     static {
         SHUTDOWN_WORKER = new PoolWorker(RxThreadFactory.NONE);
@@ -53,7 +53,7 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
     static final FixedSchedulerPool NONE = new FixedSchedulerPool(null, 0);
 
     final ThreadFactory threadFactory;
-    
+
     final AtomicReference<FixedSchedulerPool> pool;
 
     static final class FixedSchedulerPool {
@@ -79,14 +79,14 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
             // simple round robin, improvements to come
             return eventLoops[(int)(n++ % c)];
         }
-        
+
         public void shutdown() {
             for (PoolWorker w : eventLoops) {
                 w.unsubscribe();
             }
         }
     }
-    
+
     /**
      * Create a scheduler with pool size equal to the available processor
      * count and using least-recent worker selection policy.
@@ -97,12 +97,12 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
         this.pool = new AtomicReference<FixedSchedulerPool>(NONE);
         start();
     }
-    
+
     @Override
     public Worker createWorker() {
         return new EventLoopWorker(pool.get().getEventLoop());
     }
-    
+
     @Override
     public void start() {
         FixedSchedulerPool update = new FixedSchedulerPool(threadFactory, MAX_THREADS);
@@ -110,7 +110,7 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
             update.shutdown();
         }
     }
-    
+
     @Override
     public void shutdown() {
         for (;;) {
@@ -124,7 +124,7 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
             }
         }
     }
-    
+
     /**
      * Schedules the action directly on one of the event loop workers
      * without the additional infrastructure and checking.
@@ -144,7 +144,7 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
 
         EventLoopWorker(PoolWorker poolWorker) {
             this.poolWorker = poolWorker;
-            
+
         }
 
         @Override

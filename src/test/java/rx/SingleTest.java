@@ -39,9 +39,9 @@ public class SingleTest {
 
     @SuppressWarnings("rawtypes")
     private Func1<Single.OnSubscribe, Single.OnSubscribe> onCreate;
-    
+
     @SuppressWarnings("rawtypes")
-    private Func2<Single, Observable.OnSubscribe, Observable.OnSubscribe> onStart;
+    private Func2<Single, Single.OnSubscribe, Single.OnSubscribe> onStart;
 
     private Func1<Subscription, Subscription> onReturn;
 
@@ -54,28 +54,28 @@ public class SingleTest {
                 return t;
             }
         });
-        
+
         RxJavaHooks.setOnSingleCreate(onCreate);
-        
-        onStart = spy(new Func2<Single, Observable.OnSubscribe, Observable.OnSubscribe>() {
+
+        onStart = spy(new Func2<Single, Single.OnSubscribe, Single.OnSubscribe>() {
             @Override
-            public Observable.OnSubscribe call(Single t1, Observable.OnSubscribe t2) {
+            public Single.OnSubscribe call(Single t1, Single.OnSubscribe t2) {
                 return t2;
             }
         });
-        
+
         RxJavaHooks.setOnSingleStart(onStart);
-        
+
         onReturn = spy(new Func1<Subscription, Subscription>() {
             @Override
             public Subscription call(Subscription t) {
                 return t;
             }
         });
-        
+
         RxJavaHooks.setOnSingleReturn(onReturn);
     }
-    
+
     @After
     public void after() {
         RxJavaHooks.reset();
@@ -445,7 +445,7 @@ public class SingleTest {
         });
         single.subscribe(ts);
 
-        verify(onStart, times(1)).call(eq(single), any(Observable.OnSubscribe.class));
+        verify(onStart, times(1)).call(eq(single), any(Single.OnSubscribe.class));
     }
 
     @Test
@@ -458,7 +458,7 @@ public class SingleTest {
         });
         single.unsafeSubscribe(ts);
 
-        verify(onStart, times(1)).call(eq(single), any(Observable.OnSubscribe.class));
+        verify(onStart, times(1)).call(eq(single), any(Single.OnSubscribe.class));
     }
 
     @Test
@@ -501,6 +501,53 @@ public class SingleTest {
         Subscription subscription = single.unsafeSubscribe(ts);
 
         assertTrue(subscription.isUnsubscribed());
+    }
+
+    @Test
+    public void testCache() throws InterruptedException {
+        final AtomicInteger counter = new AtomicInteger();
+        Single<String> s = Single.create(new OnSubscribe<String>() {
+
+            @Override
+            public void call(final SingleSubscriber<? super String> observer) {
+                new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        counter.incrementAndGet();
+                        observer.onSuccess("one");
+                    }
+                }).start();
+            }
+        }).cache();
+
+        // we then expect the following 2 subscriptions to get that same value
+        final CountDownLatch latch = new CountDownLatch(2);
+
+        // subscribe once
+        s.subscribe(new Action1<String>() {
+
+            @Override
+            public void call(String v) {
+                assertEquals("one", v);
+                latch.countDown();
+            }
+        });
+
+        // subscribe again
+        s.subscribe(new Action1<String>() {
+
+            @Override
+            public void call(String v) {
+                assertEquals("one", v);
+                latch.countDown();
+            }
+        });
+
+        if (!latch.await(1000, TimeUnit.MILLISECONDS)) {
+            fail("subscriptions did not receive values");
+        }
+        assertEquals(1, counter.get());
     }
 
     @Test
@@ -869,6 +916,11 @@ public class SingleTest {
         testSubscriber.assertNotCompleted();
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void doOnErrorNull() {
+        Single.just(1).doOnError(null);
+    }
+
     @Test
     public void doOnErrorShouldNotCallActionIfNoErrorHasOccurred() {
         @SuppressWarnings("unchecked")
@@ -972,6 +1024,11 @@ public class SingleTest {
         testSubscriber.assertError(error);
 
         verify(callable).call();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void doOnSuccessNull() {
+        Single.just(1).doOnSuccess(null);
     }
 
     @Test
@@ -1969,7 +2026,7 @@ public class SingleTest {
     @Test
     public void unsubscribeComposesThrough() {
         PublishSubject<Integer> ps = PublishSubject.create();
-        
+
         Subscription s = ps.toSingle()
         .flatMap(new Func1<Integer, Single<Integer>>() {
             @Override
@@ -1978,16 +2035,16 @@ public class SingleTest {
             }
         })
         .subscribe();
-        
+
         s.unsubscribe();
-        
+
         assertFalse("Observers present?!", ps.hasObservers());
     }
 
     @Test(timeout = 1000)
     public void unsubscribeComposesThroughAsync() {
         PublishSubject<Integer> ps = PublishSubject.create();
-        
+
         Subscription s = ps.toSingle()
         .subscribeOn(Schedulers.io())
         .flatMap(new Func1<Integer, Single<Integer>>() {
@@ -1997,12 +2054,241 @@ public class SingleTest {
             }
         })
         .subscribe();
-        
-        while (!ps.hasObservers() && !Thread.currentThread().isInterrupted()) ;
-        
+
+        while (!ps.hasObservers() && !Thread.currentThread().isInterrupted()) { }
+
         s.unsubscribe();
-        
+
         assertFalse("Observers present?!", ps.hasObservers());
     }
 
+    @Test
+    public void flatMapCompletableComplete() {
+        final AtomicInteger atomicInteger = new AtomicInteger();
+        TestSubscriber<Object> testSubscriber = TestSubscriber.create();
+
+        Single.just(1).flatMapCompletable(new Func1<Integer, Completable>() {
+            @Override
+            public Completable call(final Integer integer) {
+                return Completable.fromAction(new Action0() {
+                    @Override
+                    public void call() {
+                        atomicInteger.set(5);
+                    }
+                });
+            }
+        }).subscribe(testSubscriber);
+
+        testSubscriber.assertCompleted();
+
+        assertEquals(5, atomicInteger.get());
+    }
+
+    @Test
+    public void flatMapCompletableError() {
+        final RuntimeException error = new RuntimeException("some error");
+        TestSubscriber<Object> testSubscriber = TestSubscriber.create();
+
+        Single.just(1).flatMapCompletable(new Func1<Integer, Completable>() {
+            @Override
+            public Completable call(final Integer integer) {
+                return Completable.error(error);
+            }
+        }).subscribe(testSubscriber);
+
+        testSubscriber.assertError(error);
+    }
+
+    @Test
+    public void flatMapCompletableNullCompletable() {
+        TestSubscriber<Object> testSubscriber = TestSubscriber.create();
+
+        Single.just(1).flatMapCompletable(new Func1<Integer, Completable>() {
+            @Override
+            public Completable call(final Integer integer) {
+                return null;
+            }
+        }).subscribe(testSubscriber);
+
+        testSubscriber.assertError(NullPointerException.class);
+    }
+
+    @Test
+    public void flatMapCompletableException() {
+        TestSubscriber<Object> testSubscriber = TestSubscriber.create();
+
+        Single.just(1).flatMapCompletable(new Func1<Integer, Completable>() {
+            @Override
+            public Completable call(final Integer integer) {
+                throw new UnsupportedOperationException();
+            }
+        }).subscribe(testSubscriber);
+
+        testSubscriber.assertError(UnsupportedOperationException.class);
+    }
+
+    @Test public void toFunctionReceivesObservableReturnsResult() {
+        Single<String> s = Single.just("Hi");
+
+        final Object expectedResult = new Object();
+        final AtomicReference<Single<?>> singleRef = new AtomicReference<Single<?>>();
+        Object actualResult = s.to(new Func1<Single<String>, Object>() {
+            @Override
+            public Object call(Single<String> single) {
+                singleRef.set(single);
+                return expectedResult;
+            }
+        });
+
+        assertSame(expectedResult, actualResult);
+        assertSame(s, singleRef.get());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void doOnEachNull() {
+        Single.just(1).doOnEach(null);
+    }
+
+    @Test
+    public void doOnEachError() {
+        final AtomicInteger atomicInteger = new AtomicInteger(0);
+        Single.error(new RuntimeException()).doOnEach(new Action1<Notification<?>>() {
+            @Override
+            public void call(final Notification<?> notification) {
+                if (notification.isOnError()) {
+                    atomicInteger.incrementAndGet();
+                }
+            }
+        }).subscribe(Actions.empty(), new Action1<Throwable>() {
+            @Override
+            public void call(final Throwable throwable) {
+                // Do nothing this is expected.
+            }
+        });
+
+        assertEquals(1, atomicInteger.get());
+    }
+
+    @Test
+    public void doOnEachSuccess() {
+        final AtomicInteger atomicInteger = new AtomicInteger(0);
+        Single.just(1).doOnEach(new Action1<Notification<? extends Integer>>() {
+            @Override
+            public void call(final Notification<? extends Integer> notification) {
+                if (notification.isOnNext()) {
+                    atomicInteger.getAndAdd(notification.getValue());
+                }
+            }
+        }).subscribe();
+
+        assertEquals(1, atomicInteger.get());
+    }
+
+    @Test
+    public void isUnsubscribedAfterSuccess() {
+        PublishSubject<Integer> ps = PublishSubject.create();
+
+        final int[] calls = { 0 };
+
+        Subscription s = ps.toSingle().subscribe(new Action1<Integer>() {
+            @Override
+            public void call(Integer t) {
+                calls[0]++;
+            }
+        });
+
+        assertFalse(s.isUnsubscribed());
+
+        ps.onNext(1);
+        ps.onCompleted();
+
+        assertTrue(s.isUnsubscribed());
+
+        assertEquals(1, calls[0]);
+    }
+
+    @Test
+    public void isUnsubscribedAfterError() {
+        PublishSubject<Integer> ps = PublishSubject.create();
+
+        final int[] calls = { 0 };
+
+        Action1<Integer> a = Actions.empty();
+
+        Subscription s = ps.toSingle().subscribe(a, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable t) {
+                calls[0]++;
+            }
+        });
+
+        assertFalse(s.isUnsubscribed());
+
+        ps.onError(new TestException());
+
+        assertTrue(s.isUnsubscribed());
+
+        assertEquals(1, calls[0]);
+    }
+
+    @Test
+    public void unsubscribeOnSuccess() throws InterruptedException {
+        final AtomicReference<String> name = new AtomicReference<String>();
+
+        final CountDownLatch cdl = new CountDownLatch(1);
+
+        TestSubscriber<Integer> ts = TestSubscriber.create();
+
+        Single.fromCallable(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return 1;
+            }
+        })
+                .doOnUnsubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        name.set(Thread.currentThread().getName());
+                        cdl.countDown();
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.computation())
+                .subscribe(ts);
+
+        cdl.await();
+
+        ts.awaitTerminalEvent();
+        ts.assertReceivedOnNext(Arrays.asList(1));
+
+        assertTrue(name.get().startsWith("RxComputation"));
+    }
+
+    @Test
+    public void unsubscribeOnError() throws InterruptedException {
+        final AtomicReference<String> name = new AtomicReference<String>();
+
+        final CountDownLatch cdl = new CountDownLatch(1);
+
+        TestSubscriber<Integer> ts = TestSubscriber.create();
+
+        Single.<Integer>error(new RuntimeException())
+                .doOnUnsubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        name.set(Thread.currentThread().getName());
+                        cdl.countDown();
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.computation())
+                .subscribe(ts);
+
+        cdl.await();
+
+        ts.awaitTerminalEvent();
+        ts.assertError(RuntimeException.class);
+
+        assertTrue(name.get().startsWith("RxComputation"));
+    }
 }

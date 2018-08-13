@@ -1,11 +1,11 @@
 /**
  * Copyright 2015 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
  * compliance with the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is
  * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
  * the License for the specific language governing permissions and limitations under the License.
@@ -31,12 +31,12 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
     final FuncN<? extends R> combiner;
     final int bufferSize;
     final boolean delayError;
-    
+
     public OnSubscribeCombineLatest(Iterable<? extends Observable<? extends T>> sourcesIterable,
             FuncN<? extends R> combiner) {
         this(null, sourcesIterable, combiner, RxRingBuffer.SIZE, false);
     }
-    
+
     public OnSubscribeCombineLatest(Observable<? extends T>[] sources,
             Iterable<? extends Observable<? extends T>> sourcesIterable,
             FuncN<? extends R> combiner, int bufferSize,
@@ -48,7 +48,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
         this.delayError = delayError;
     }
 
-    
+
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void call(Subscriber<? super R> s) {
@@ -74,49 +74,47 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
         } else {
             count = sources.length;
         }
-        
+
         if (count == 0) {
             s.onCompleted();
             return;
         }
-        
+
         LatestCoordinator<T, R> lc = new LatestCoordinator<T, R>(s, combiner, count, bufferSize, delayError);
         lc.subscribe(sources);
     }
-    
+
     static final class LatestCoordinator<T, R> extends AtomicInteger implements Producer, Subscription {
         /** */
         private static final long serialVersionUID = 8567835998786448817L;
         final Subscriber<? super R> actual;
         final FuncN<? extends R> combiner;
-        final int count;
         final CombinerSubscriber<T, R>[] subscribers;
         final int bufferSize;
         final Object[] latest;
         final SpscLinkedArrayQueue<Object> queue;
         final boolean delayError;
-        
+
         volatile boolean cancelled;
-        
+
         volatile boolean done;
-        
+
         final AtomicLong requested;
 
         final AtomicReference<Throwable> error;
-        
+
         int active;
         int complete;
-        
+
         /** Indicates the particular source hasn't emitted any value yet. */
         static final Object MISSING = new Object();
-        
+
         @SuppressWarnings("unchecked")
-        public LatestCoordinator(Subscriber<? super R> actual, 
-                FuncN<? extends R> combiner, 
+        public LatestCoordinator(Subscriber<? super R> actual,
+                FuncN<? extends R> combiner,
                 int count, int bufferSize, boolean delayError) {
             this.actual = actual;
             this.combiner = combiner;
-            this.count = count;
             this.bufferSize = bufferSize;
             this.delayError = delayError;
             this.latest = new Object[count];
@@ -126,7 +124,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
             this.requested = new AtomicLong();
             this.error = new AtomicReference<Throwable>();
         }
-        
+
         @SuppressWarnings("unchecked")
         public void subscribe(Observable<? extends T>[] sources) {
             Subscriber<T>[] as = subscribers;
@@ -144,7 +142,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                 ((Observable<T>)sources[i]).subscribe(as[i]);
             }
         }
-        
+
         @Override
         public void request(long n) {
             if (n < 0) {
@@ -155,30 +153,30 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                 drain();
             }
         }
-        
+
         @Override
         public void unsubscribe() {
             if (!cancelled) {
                 cancelled = true;
-                
+
                 if (getAndIncrement() == 0) {
                     cancel(queue);
                 }
             }
         }
-        
+
         @Override
         public boolean isUnsubscribed() {
             return cancelled;
         }
-        
+
         void cancel(Queue<?> q) {
             q.clear();
             for (CombinerSubscriber<T, R> s : subscribers) {
                 s.unsubscribe();
             }
         }
-        
+
         /**
          * Combine the given notification value from the indexth source with the existing known
          * latest values.
@@ -187,7 +185,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
          */
         void combine(Object value, int index) {
             CombinerSubscriber<T, R> combinerSubscriber = subscribers[index];
-            
+
             int activeCount;
             int completedCount;
             int sourceCount;
@@ -204,11 +202,11 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                 if (value == null) {
                     complete = ++completedCount;
                 } else {
-                    latest[index] = combinerSubscriber.nl.getValue(value);
+                    latest[index] = NotificationLite.getValue(value);
                 }
                 allSourcesFinished = activeCount == sourceCount;
                 // see if either all sources completed
-                empty = completedCount == sourceCount 
+                empty = completedCount == sourceCount
                         || (value == null && o == MISSING); // or this source completed without any value
                 if (!empty) {
                     if (value != null && allSourcesFinished) {
@@ -231,47 +229,47 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
             if (getAndIncrement() != 0) {
                 return;
             }
-            
+
             final Queue<Object> q = queue;
             final Subscriber<? super R> a = actual;
             final boolean delayError = this.delayError;
             final AtomicLong localRequested = this.requested;
-            
+
             int missed = 1;
             for (;;) {
-                
+
                 if (checkTerminated(done, q.isEmpty(), a, q, delayError)) {
                     return;
                 }
-                
+
                 long requestAmount = localRequested.get();
                 long emitted = 0L;
-                
+
                 while (emitted != requestAmount) {
-                    
+
                     boolean d = done;
                     @SuppressWarnings("unchecked")
                     CombinerSubscriber<T, R> cs = (CombinerSubscriber<T, R>)q.peek();
                     boolean empty = cs == null;
-                    
+
                     if (checkTerminated(d, empty, a, q, delayError)) {
                         return;
                     }
-                    
+
                     if (empty) {
                         break;
                     }
 
                     q.poll();
                     Object[] array = (Object[])q.poll();
-                    
+
                     if (array == null) {
                         cancelled = true;
                         cancel(q);
                         a.onError(new IllegalStateException("Broken queue?! Sender received but not the array."));
                         return;
                     }
-                    
+
                     R v;
                     try {
                         v = combiner.call(array);
@@ -281,26 +279,26 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                         a.onError(ex);
                         return;
                     }
-                    
+
                     a.onNext(v);
-                    
+
                     cs.requestMore(1);
-                    
+
                     emitted++;
                 }
-                
+
                 if (emitted != 0L && requestAmount != Long.MAX_VALUE) {
                     BackpressureUtils.produced(localRequested, emitted);
                 }
-                
+
                 missed = addAndGet(-missed);
                 if (missed == 0) {
                     break;
                 }
             }
         }
-        
-        
+
+
         boolean checkTerminated(boolean mainDone, boolean queueEmpty, Subscriber<?> childSubscriber, Queue<?> q, boolean delayError) {
             if (cancelled) {
                 cancel(q);
@@ -332,7 +330,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
             }
             return false;
         }
-        
+
         void onError(Throwable e) {
             AtomicReference<Throwable> localError = this.error;
             for (;;) {
@@ -356,29 +354,27 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
             }
         }
     }
-    
+
     static final class CombinerSubscriber<T, R> extends Subscriber<T> {
         final LatestCoordinator<T, R> parent;
         final int index;
-        final NotificationLite<T> nl;
-        
+
         boolean done;
-        
+
         public CombinerSubscriber(LatestCoordinator<T, R> parent, int index) {
             this.parent = parent;
             this.index = index;
-            this.nl = NotificationLite.instance();
             request(parent.bufferSize);
         }
-        
+
         @Override
         public void onNext(T t) {
             if (done) {
                 return;
             }
-            parent.combine(nl.next(t), index);
+            parent.combine(NotificationLite.next(t), index);
         }
-        
+
         @Override
         public void onError(Throwable t) {
             if (done) {
@@ -389,7 +385,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
             done = true;
             parent.combine(null, index);
         }
-        
+
         @Override
         public void onCompleted() {
             if (done) {
@@ -398,7 +394,7 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
             done = true;
             parent.combine(null, index);
         }
-        
+
         public void requestMore(long n) {
             request(n);
         }

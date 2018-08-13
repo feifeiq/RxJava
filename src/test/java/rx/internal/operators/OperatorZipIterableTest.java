@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -353,7 +353,7 @@ public class OperatorZipIterableTest {
         verify(o, never()).onCompleted();
 
     }
-    
+
     Action1<String> printer = new Action1<String>() {
         @Override
         public void call(String t1) {
@@ -366,19 +366,19 @@ public class OperatorZipIterableTest {
         @Override
         public String call(Integer t1) {
             counter.incrementAndGet();
-            System.out.println("Omg I'm calculating so hard: " + t1 + "*" + t1 + "=" + (t1*t1));
-            return " " + (t1*t1);
+            System.out.println("Omg I'm calculating so hard: " + t1 + "*" + t1 + "=" + (t1 * t1));
+            return " " + (t1 * t1);
         }
     }
 
     @Test public void testTake2() {
         Observable<Integer> o = Observable.just(1, 2, 3, 4, 5);
         Iterable<String> it = Arrays.asList("a", "b", "c", "d", "e");
-        
+
         SquareStr squareStr = new SquareStr();
-        
+
         o.map(squareStr).zipWith(it, concat2Strings).take(2).subscribe(printer);
-        
+
         assertEquals(2, squareStr.counter.get());
     }
 

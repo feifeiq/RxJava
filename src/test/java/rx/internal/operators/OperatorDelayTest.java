@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -671,7 +671,7 @@ public class OperatorDelayTest {
                 .observeOn(Schedulers.computation())
                 .map(new Func1<Integer, Integer>() {
 
-                    int c = 0;
+                    int c;
 
                     @Override
                     public Integer call(Integer t) {
@@ -690,7 +690,7 @@ public class OperatorDelayTest {
         ts.assertNoErrors();
         assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
     }
-    
+
     @Test
     public void testBackpressureWithSubscriptionTimedDelay() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
@@ -700,7 +700,7 @@ public class OperatorDelayTest {
                 .observeOn(Schedulers.computation())
                 .map(new Func1<Integer, Integer>() {
 
-                    int c = 0;
+                    int c;
 
                     @Override
                     public Integer call(Integer t) {
@@ -735,7 +735,7 @@ public class OperatorDelayTest {
                 .observeOn(Schedulers.computation())
                 .map(new Func1<Integer, Integer>() {
 
-                    int c = 0;
+                    int c;
 
                     @Override
                     public Integer call(Integer t) {
@@ -776,7 +776,7 @@ public class OperatorDelayTest {
                 .observeOn(Schedulers.computation())
                 .map(new Func1<Integer, Integer>() {
 
-                    int c = 0;
+                    int c;
 
                     @Override
                     public Integer call(Integer t) {
@@ -795,25 +795,25 @@ public class OperatorDelayTest {
         ts.assertNoErrors();
         assertEquals(RxRingBuffer.SIZE * 2, ts.getOnNextEvents().size());
     }
-    
+
     @Test
     public void testErrorRunsBeforeOnNext() {
         TestScheduler test = Schedulers.test();
-        
+
         PublishSubject<Integer> ps = PublishSubject.create();
-        
+
         TestSubscriber<Integer> ts = TestSubscriber.create();
-        
+
         ps.delay(1, TimeUnit.SECONDS, test).subscribe(ts);
-        
+
         ps.onNext(1);
-        
+
         test.advanceTimeBy(500, TimeUnit.MILLISECONDS);
-        
+
         ps.onError(new TestException());
-        
+
         test.advanceTimeBy(1, TimeUnit.SECONDS);
-        
+
         ts.assertNoValues();
         ts.assertError(TestException.class);
         ts.assertNotCompleted();
@@ -822,13 +822,13 @@ public class OperatorDelayTest {
     @Test
     public void delaySubscriptionCancelBeforeTime() {
         PublishSubject<Integer> source = PublishSubject.create();
-        
+
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        
+
         source.delaySubscription(100, TimeUnit.MILLISECONDS, scheduler).subscribe(ts);
-        
+
         Assert.assertFalse("source subscribed?", source.hasObservers());
-        
+
         ts.unsubscribe();
 
         Assert.assertFalse("source subscribed?", source.hasObservers());

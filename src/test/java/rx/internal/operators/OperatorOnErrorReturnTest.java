@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,7 +41,7 @@ public class OperatorOnErrorReturnTest {
     @Test
     public void testResumeNext() {
         TestObservable f = new TestObservable("one");
-        Observable<String> w = Observable.create(f);
+        Observable<String> w = Observable.unsafeCreate(f);
         final AtomicReference<Throwable> capturedException = new AtomicReference<Throwable>();
 
         Observable<String> observable = w.onErrorReturn(new Func1<Throwable, String>() {
@@ -77,7 +77,7 @@ public class OperatorOnErrorReturnTest {
     @Test
     public void testFunctionThrowsError() {
         TestObservable f = new TestObservable("one");
-        Observable<String> w = Observable.create(f);
+        Observable<String> w = Observable.unsafeCreate(f);
         final AtomicReference<Throwable> capturedException = new AtomicReference<Throwable>();
 
         Observable<String> observable = w.onErrorReturn(new Func1<Throwable, String>() {
@@ -108,7 +108,7 @@ public class OperatorOnErrorReturnTest {
         verify(observer, times(0)).onCompleted();
         assertNotNull(capturedException.get());
     }
-    
+
     @Test
     public void testMapResumeAsyncNext() {
         // Trigger multiple failures
@@ -119,8 +119,9 @@ public class OperatorOnErrorReturnTest {
         w = w.map(new Func1<String, String>() {
             @Override
             public String call(String s) {
-                if ("fail".equals(s))
+                if ("fail".equals(s)) {
                     throw new RuntimeException("Forced Failure");
+                }
                 System.out.println("BadMapper:" + s);
                 return s;
             }
@@ -132,7 +133,7 @@ public class OperatorOnErrorReturnTest {
             public String call(Throwable t1) {
                 return "resume";
             }
-            
+
         });
 
         @SuppressWarnings("unchecked")
@@ -148,7 +149,7 @@ public class OperatorOnErrorReturnTest {
         verify(observer, Mockito.never()).onNext("three");
         verify(observer, times(1)).onNext("resume");
     }
-    
+
     @Test
     public void testBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
@@ -159,11 +160,11 @@ public class OperatorOnErrorReturnTest {
                     public Integer call(Throwable t1) {
                         return 1;
                     }
-                    
+
                 })
                 .observeOn(Schedulers.computation())
                 .map(new Func1<Integer, Integer>() {
-                    int c = 0;
+                    int c;
 
                     @Override
                     public Integer call(Integer t1) {
@@ -187,7 +188,7 @@ public class OperatorOnErrorReturnTest {
     private static class TestObservable implements Observable.OnSubscribe<String> {
 
         final String[] values;
-        Thread t = null;
+        Thread t;
 
         public TestObservable(String... values) {
             this.values = values;
@@ -218,22 +219,22 @@ public class OperatorOnErrorReturnTest {
             System.out.println("done starting TestObservable thread");
         }
     }
-    
+
     @Test
     public void normalBackpressure() {
         TestSubscriber<Integer> ts = TestSubscriber.create(0);
-        
+
         PublishSubject<Integer> ps = PublishSubject.create();
-        
+
         ps.onErrorReturn(new Func1<Throwable, Integer>() {
             @Override
             public Integer call(Throwable e) {
                 return 3;
             }
         }).subscribe(ts);
-        
+
         ts.requestMore(2);
-        
+
         ps.onNext(1);
         ps.onNext(2);
         ps.onError(new TestException("Forced failure"));
@@ -243,7 +244,7 @@ public class OperatorOnErrorReturnTest {
         ts.assertNotCompleted();
 
         ts.requestMore(2);
-        
+
         ts.assertValues(1, 2, 3);
         ts.assertNoErrors();
         ts.assertCompleted();

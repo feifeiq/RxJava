@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,9 +44,9 @@ import rx.subscriptions.SerialSubscription;
  */
 public final class OperatorOnErrorResumeNextViaFunction<T> implements Operator<T, T> {
 
-    final Func1<Throwable, ? extends Observable<? extends T>> resumeFunction;
+    final Func1<? super Throwable, ? extends Observable<? extends T>> resumeFunction;
 
-    public static <T> OperatorOnErrorResumeNextViaFunction<T> withSingle(final Func1<Throwable, ? extends T> resumeFunction) {
+    public static <T> OperatorOnErrorResumeNextViaFunction<T> withSingle(final Func1<? super Throwable, ? extends T> resumeFunction) {
         return new OperatorOnErrorResumeNextViaFunction<T>(new Func1<Throwable, Observable<? extends T>>() {
             @Override
             public Observable<? extends T> call(Throwable t) {
@@ -76,22 +76,22 @@ public final class OperatorOnErrorResumeNextViaFunction<T> implements Operator<T
         });
     }
 
-    public OperatorOnErrorResumeNextViaFunction(Func1<Throwable, ? extends Observable<? extends T>> f) {
+    public OperatorOnErrorResumeNextViaFunction(Func1<? super Throwable, ? extends Observable<? extends T>> f) {
         this.resumeFunction = f;
     }
 
     @Override
     public Subscriber<? super T> call(final Subscriber<? super T> child) {
         final ProducerArbiter pa = new ProducerArbiter();
-        
-        final SerialSubscription ssub = new SerialSubscription();
-        
+
+        final SerialSubscription serial = new SerialSubscription();
+
         Subscriber<T> parent = new Subscriber<T>() {
 
             private boolean done;
-        
+
             long produced;
-            
+
             @Override
             public void onCompleted() {
                 if (done) {
@@ -130,15 +130,15 @@ public final class OperatorOnErrorResumeNextViaFunction<T> implements Operator<T
                             pa.setProducer(producer);
                         }
                     };
-                    ssub.set(next);
-                    
+                    serial.set(next);
+
                     long p = produced;
                     if (p != 0L) {
                         pa.produced(p);
                     }
-                    
+
                     Observable<? extends T> resume = resumeFunction.call(e);
-                    
+
                     resume.unsafeSubscribe(next);
                 } catch (Throwable e2) {
                     Exceptions.throwOrReport(e2, child);
@@ -153,18 +153,18 @@ public final class OperatorOnErrorResumeNextViaFunction<T> implements Operator<T
                 produced++;
                 child.onNext(t);
             }
-            
+
             @Override
             public void setProducer(final Producer producer) {
                 pa.setProducer(producer);
             }
 
         };
-        ssub.set(parent);
+        serial.set(parent);
 
-        child.add(ssub);
+        child.add(serial);
         child.setProducer(pa);
-        
+
         return parent;
     }
 

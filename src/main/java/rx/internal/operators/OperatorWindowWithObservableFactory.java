@@ -29,7 +29,7 @@ import rx.subscriptions.SerialSubscription;
 /**
  * Creates non-overlapping windows of items where each window is terminated by
  * an event from a secondary observable and a new window is started immediately.
- * 
+ *
  * @param <T> the value type
  * @param <U> the boundary value type
  */
@@ -38,22 +38,20 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
 
     /** Indicate the current subject should complete and a new subject be emitted. */
     static final Object NEXT_SUBJECT = new Object();
-    /** For error and completion indication. */
-    static final NotificationLite<Object> NL = NotificationLite.instance();
 
     public OperatorWindowWithObservableFactory(Func0<? extends Observable<? extends U>> otherFactory) {
         this.otherFactory = otherFactory;
     }
-    
+
     @Override
     public Subscriber<? super T> call(Subscriber<? super Observable<T>> child) {
-        
+
         SourceSubscriber<T, U> sub = new SourceSubscriber<T, U>(child, otherFactory);
-        
+
         child.add(sub);
-        
+
         sub.replaceWindow();
-        
+
         return sub;
     }
     /** Observes the source. */
@@ -68,25 +66,25 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
         boolean emitting;
         /** Guarded by guard. */
         List<Object> queue;
-        
-        final SerialSubscription ssub;
-        
+
+        final SerialSubscription serial;
+
         final Func0<? extends Observable<? extends U>> otherFactory;
-        
-        public SourceSubscriber(Subscriber<? super Observable<T>> child, 
+
+        public SourceSubscriber(Subscriber<? super Observable<T>> child,
                 Func0<? extends Observable<? extends U>> otherFactory) {
             this.child = new SerializedSubscriber<Observable<T>>(child);
             this.guard = new Object();
-            this.ssub = new SerialSubscription();
+            this.serial = new SerialSubscription();
             this.otherFactory = otherFactory;
-            this.add(ssub);
+            this.add(serial);
         }
-        
+
         @Override
         public void onStart() {
             request(Long.MAX_VALUE);
         }
-        
+
         @Override
         public void onNext(T t) {
             List<Object> localQueue;
@@ -111,7 +109,7 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
                         once = false;
                         emitValue(t);
                     }
-                    
+
                     synchronized (guard) {
                         localQueue = queue;
                         queue = null;
@@ -139,11 +137,11 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
                 if (o == NEXT_SUBJECT) {
                     replaceSubject();
                 } else
-                if (NL.isError(o)) {
-                    error(NL.getError(o));
+                if (NotificationLite.isError(o)) {
+                    error(NotificationLite.getError(o));
                     break;
                 } else
-                if (NL.isCompleted(o)) {
+                if (NotificationLite.isCompleted(o)) {
                     complete();
                     break;
                 } else {
@@ -173,9 +171,9 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
                 unsubscribe();
                 return;
             }
-            
+
             BoundarySubscriber<T, U> bs = new BoundarySubscriber<T, U>(this);
-            ssub.set(bs);
+            serial.set(bs);
             other.unsafeSubscribe(bs);
         }
         void emitValue(T t) {
@@ -184,12 +182,12 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
                 s.onNext(t);
             }
         }
-        
+
         @Override
         public void onError(Throwable e) {
             synchronized (guard) {
                 if (emitting) {
-                    queue = Collections.singletonList(NL.error(e));
+                    queue = Collections.singletonList(NotificationLite.error(e));
                     return;
                 }
                 queue = null;
@@ -206,7 +204,7 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
                     if (queue == null) {
                         queue = new ArrayList<Object>();
                     }
-                    queue.add(NL.completed());
+                    queue.add(NotificationLite.completed());
                     return;
                 }
                 localQueue = queue;
@@ -266,7 +264,7 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
             Observer<T> s = consumer;
             consumer = null;
             producer = null;
-            
+
             if (s != null) {
                 s.onCompleted();
             }
@@ -277,7 +275,7 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
             Observer<T> s = consumer;
             consumer = null;
             producer = null;
-            
+
             if (s != null) {
                 s.onError(e);
             }
@@ -292,12 +290,12 @@ public final class OperatorWindowWithObservableFactory<T, U> implements Operator
         public BoundarySubscriber(SourceSubscriber<T, U> sub) {
             this.sub = sub;
         }
-        
+
         @Override
         public void onStart() {
             request(Long.MAX_VALUE);
         }
-        
+
         @Override
         public void onNext(U t) {
             if (!done) {

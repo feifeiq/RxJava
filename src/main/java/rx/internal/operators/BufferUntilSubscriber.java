@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -71,13 +71,12 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
         boolean emitting;
 
         final ConcurrentLinkedQueue<Object> buffer = new ConcurrentLinkedQueue<Object>();
-        final NotificationLite<T> nl = NotificationLite.instance();
 
         boolean casObserverRef(Observer<? super T>  expected, Observer<? super T>  next) {
             return compareAndSet(expected, next);
         }
     }
-    
+
     static final class OnSubscribeAction<T> implements OnSubscribe<T> {
         final State<T> state;
 
@@ -103,11 +102,10 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
                     }
                 }
                 if (win) {
-                    final NotificationLite<T> nl = NotificationLite.instance();
-                    while(true) {
+                    while (true) {
                         Object o;
                         while ((o = state.buffer.poll()) != null) {
-                            nl.accept(state.get(), o);
+                            NotificationLite.accept(state.get(), o);
                         }
                         synchronized (state.guard) {
                             if (state.buffer.isEmpty()) {
@@ -124,7 +122,7 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
                 s.onError(new IllegalStateException("Only one subscriber allowed!"));
             }
         }
-        
+
     }
 
     private BufferUntilSubscriber(State<T> state) {
@@ -145,7 +143,7 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
         if (forward) {
             Object o;
             while ((o = state.buffer.poll()) != null) {
-                state.nl.accept(state.get(), o);
+                NotificationLite.accept(state.get(), o);
             }
             // Because `emit(Object v)` will be called in sequence,
             // no event will be put into `buffer` after we drain it.
@@ -158,7 +156,7 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
             state.get().onCompleted();
         }
         else {
-            emit(state.nl.completed());
+            emit(NotificationLite.completed());
         }
     }
 
@@ -168,7 +166,7 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
             state.get().onError(e);
         }
         else {
-            emit(state.nl.error(e));
+            emit(NotificationLite.error(e));
         }
     }
 
@@ -178,7 +176,7 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
             state.get().onNext(t);
         }
         else {
-            emit(state.nl.next(t));
+            emit(NotificationLite.next(t));
         }
     }
 
@@ -206,7 +204,7 @@ public final class BufferUntilSubscriber<T> extends Subject<T, T> {
         public void onNext(Object t) {
             // deliberately no op
         }
-        
+
     };
-    
+
 }

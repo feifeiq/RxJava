@@ -24,9 +24,9 @@ import rx.functions.*;
 public final class OnSubscribeCollect<T, R> implements OnSubscribe<R> {
 
     final Observable<T> source;
-    
+
     final Func0<R> collectionFactory;
-    
+
     final Action2<R, ? super T> collector;
 
     public OnSubscribeCollect(Observable<T> source, Func0<R> collectionFactory, Action2<R, ? super T> collector) {
@@ -34,11 +34,11 @@ public final class OnSubscribeCollect<T, R> implements OnSubscribe<R> {
         this.collectionFactory = collectionFactory;
         this.collector = collector;
     }
-    
+
     @Override
     public void call(Subscriber<? super R> t) {
         R initialValue;
-        
+
         try {
             initialValue = collectionFactory.call();
         } catch (Throwable ex) {
@@ -46,11 +46,11 @@ public final class OnSubscribeCollect<T, R> implements OnSubscribe<R> {
             t.onError(ex);
             return;
         }
-        
+
         new CollectSubscriber<T, R>(t, initialValue, collector).subscribeTo(source);
     }
-    
-    static final class CollectSubscriber<T, R> extends DeferredScalarSubscriber<T, R> {
+
+    static final class CollectSubscriber<T, R> extends DeferredScalarSubscriberSafe<T, R> {
 
         final Action2<R, ? super T> collector;
 
@@ -63,14 +63,17 @@ public final class OnSubscribeCollect<T, R> implements OnSubscribe<R> {
 
         @Override
         public void onNext(T t) {
+            if (done) {
+                return;
+            }
             try {
                 collector.call(value, t);
             } catch (Throwable ex) {
                 Exceptions.throwIfFatal(ex);
                 unsubscribe();
-                actual.onError(ex);
+                onError(ex);
             }
         }
-        
+
     }
 }

@@ -19,20 +19,21 @@ import static org.junit.Assert.*;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Test;
+
+import org.junit.*;
+
 import rx.*;
 import rx.Scheduler.Worker;
 import rx.functions.*;
 import rx.internal.schedulers.ExecutorScheduler.ExecutorSchedulerWorker;
 import rx.internal.util.RxThreadFactory;
-import rx.schedulers.AbstractSchedulerConcurrencyTests;
-import rx.schedulers.SchedulerTests;
-import rx.schedulers.Schedulers;
+import rx.plugins.RxJavaHooks;
+import rx.schedulers.*;
 
 public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
 
     final static Executor executor = Executors.newFixedThreadPool(2, new RxThreadFactory("TestCustomPool-"));
-    
+
     @Override
     protected Scheduler getScheduler() {
         return Schedulers.from(executor);
@@ -47,7 +48,7 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
     public final void testHandledErrorIsNotDeliveredToThreadHandler() throws InterruptedException {
         SchedulerTests.testHandledErrorIsNotDeliveredToThreadHandler(getScheduler());
     }
-    
+
     @Test(timeout = 60000)
     public void testCancelledTaskRetention() throws InterruptedException {
         ExecutorService exec = Executors.newSingleThreadExecutor();
@@ -59,7 +60,7 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
             } finally {
                 w.unsubscribe();
             }
-            
+
             w = s.createWorker();
             try {
                 SchedulerTests.testCancelledRetention(w, true);
@@ -70,7 +71,7 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
             exec.shutdownNow();
         }
     }
-    
+
     /** A simple executor which queues tasks and executes them one-by-one if executeOne() is called. */
     static final class TestExecutor implements Executor {
         final ConcurrentLinkedQueue<Runnable> queue = new ConcurrentLinkedQueue<Runnable>();
@@ -91,7 +92,7 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
             }
         }
     }
-    
+
     @Test
     public void testCancelledTasksDontRun() {
         final AtomicInteger calls = new AtomicInteger();
@@ -108,13 +109,13 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
             Subscription s1 = w.schedule(task);
             Subscription s2 = w.schedule(task);
             Subscription s3 = w.schedule(task);
-            
+
             s1.unsubscribe();
             s2.unsubscribe();
             s3.unsubscribe();
-            
+
             exec.executeAll();
-            
+
             assertEquals(0, calls.get());
         } finally {
             w.unsubscribe();
@@ -151,35 +152,35 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
             }
         };
         ExecutorSchedulerWorker w = (ExecutorSchedulerWorker)Schedulers.from(e).createWorker();
-        
+
         w.schedule(Actions.empty(), 50, TimeUnit.MILLISECONDS);
-        
+
         assertTrue(w.tasks.hasSubscriptions());
-        
+
         Thread.sleep(150);
-        
+
         assertFalse(w.tasks.hasSubscriptions());
     }
-    
+
     @Test
     public void testNoTimedTaskPartRetention() {
         Executor e = new Executor() {
             @Override
             public void execute(Runnable command) {
-                
+
             }
         };
         ExecutorSchedulerWorker w = (ExecutorSchedulerWorker)Schedulers.from(e).createWorker();
-        
+
         Subscription s = w.schedule(Actions.empty(), 1, TimeUnit.DAYS);
-        
+
         assertTrue(w.tasks.hasSubscriptions());
-        
+
         s.unsubscribe();
-        
+
         assertFalse(w.tasks.hasSubscriptions());
     }
-    
+
     @Test
     public void testNoPeriodicTimedTaskPartRetention() throws InterruptedException {
         Executor e = new Executor() {
@@ -189,7 +190,7 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
             }
         };
         ExecutorSchedulerWorker w = (ExecutorSchedulerWorker)Schedulers.from(e).createWorker();
-        
+
         final CountDownLatch cdl = new CountDownLatch(1);
         final Action0 action = new Action0() {
             @Override
@@ -197,15 +198,55 @@ public class ExecutorSchedulerTest extends AbstractSchedulerConcurrencyTests {
                 cdl.countDown();
             }
         };
-        
+
         Subscription s = w.schedulePeriodically(action, 0, 1, TimeUnit.DAYS);
-        
+
         assertTrue(w.tasks.hasSubscriptions());
-        
+
         cdl.await();
-        
+
         s.unsubscribe();
-        
+
         assertFalse(w.tasks.hasSubscriptions());
+    }
+
+    @Test
+    public void actionHookCalled() throws Exception {
+        ExecutorService exec = Executors.newSingleThreadExecutor();
+        try {
+            final int[] call = { 0 };
+
+            RxJavaHooks.setOnScheduleAction(new Func1<Action0, Action0>() {
+                @Override
+                public Action0 call(Action0 t) {
+                    call[0]++;
+                    return t;
+                }
+            });
+
+            Scheduler s = Schedulers.from(exec);
+
+            Worker w = s.createWorker();
+
+            final CountDownLatch cdl = new CountDownLatch(1);
+
+            try {
+                w.schedule(new Action0() {
+                    @Override
+                    public void call() {
+                        cdl.countDown();
+                    }
+                });
+
+                Assert.assertTrue("Action timed out", cdl.await(5, TimeUnit.SECONDS));
+            } finally {
+                w.unsubscribe();
+            }
+
+            Assert.assertEquals("Hook not called!", 1, call[0]);
+        } finally {
+            RxJavaHooks.reset();
+            exec.shutdown();
+        }
     }
 }

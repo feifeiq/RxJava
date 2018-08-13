@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,7 +53,7 @@ public final class BlockingOperatorNext {
 
     }
 
-    // test needs to access the observer.waiting flag non-blockingly.
+    // test needs to access the observer.waiting flag in a non-blocking fashion.
     /* private */static final class NextIterator<T> implements Iterator<T> {
 
         private final NextObserver<T> observer;
@@ -81,11 +81,8 @@ public final class BlockingOperatorNext {
                 // the iterator has reached the end.
                 return false;
             }
-            if (!isNextConsumed) {
-                // next has not been used yet.
-                return true;
-            }
-            return moveToNext();
+            // next has not been used yet.
+            return !isNextConsumed || moveToNext();
         }
 
         @SuppressWarnings("unchecked")
@@ -97,7 +94,7 @@ public final class BlockingOperatorNext {
                     observer.setWaiting(1);
                     ((Observable<T>)items).materialize().subscribe(observer);
                 }
-                
+
                 Notification<? extends T> nextNotification = observer.takeNext();
                 if (nextNotification.isOnNext()) {
                     isNextConsumed = false;

@@ -33,8 +33,9 @@ public class BufferUntilSubscriberTest {
     public void testIssue1677() throws InterruptedException {
         final AtomicLong counter = new AtomicLong();
         final Integer[] numbers = new Integer[5000];
-        for (int i = 0; i < numbers.length; i++)
+        for (int i = 0; i < numbers.length; i++) {
             numbers[i] = i + 1;
+        }
         final int NITERS = 250;
         final CountDownLatch latch = new CountDownLatch(NITERS);
         for (int iters = 0; iters < NITERS; iters++) {
@@ -72,47 +73,49 @@ public class BufferUntilSubscriberTest {
                         }
                     })
                     .subscribe();
-            if (!innerLatch.await(30, TimeUnit.SECONDS))
+            if (!innerLatch.await(30, TimeUnit.SECONDS)) {
                 Assert.fail("Failed inner latch wait, iteration " + iters);
+            }
         }
-        if (!latch.await(30, TimeUnit.SECONDS))
+        if (!latch.await(30, TimeUnit.SECONDS)) {
             Assert.fail("Incomplete! Went through " + latch.getCount() + " iterations");
-        else
+        } else {
             Assert.assertEquals(NITERS, counter.get());
+        }
     }
-    
+
     @Test
     public void testBackpressure() {
         UnicastSubject<Integer> bus = UnicastSubject.create();
         for (int i = 0; i < 32; i++) {
             bus.onNext(i);
         }
-        
+
         TestSubscriber<Integer> ts = TestSubscriber.create(0);
-        
+
         bus.subscribe(ts);
-        
+
         ts.assertValueCount(0);
         ts.assertNoTerminalEvent();
-        
+
         ts.requestMore(10);
-        
+
         ts.assertValueCount(10);
-        
+
         ts.requestMore(22);
         ts.assertValueCount(32);
 
         Assert.assertFalse(bus.state.caughtUp);
 
         ts.requestMore(Long.MAX_VALUE);
-        
+
         Assert.assertTrue(bus.state.caughtUp);
 
         for (int i = 32; i < 64; i++) {
             bus.onNext(i);
         }
         bus.onCompleted();
-        
+
         ts.assertValueCount(64);
         ts.assertNoErrors();
         ts.assertCompleted();
@@ -124,11 +127,11 @@ public class BufferUntilSubscriberTest {
             bus.onNext(i);
         }
         bus.onError(new TestException());
-        
+
         TestSubscriber<Integer> ts = TestSubscriber.create(0);
-        
+
         bus.subscribe(ts);
-        
+
         ts.assertNoValues();
         ts.assertNotCompleted();
         ts.assertError(TestException.class);
@@ -139,16 +142,16 @@ public class BufferUntilSubscriberTest {
         for (int i = 0; i < 32; i++) {
             bus.onNext(i);
         }
-        
+
         TestSubscriber<Integer> ts = TestSubscriber.create(0);
-        
+
         bus.subscribe(ts);
 
         ts.assertNoValues();
         ts.assertNoTerminalEvent();
 
         bus.onError(new TestException());
-        
+
         ts.assertNoValues();
         ts.assertNotCompleted();
         ts.assertError(TestException.class);
@@ -159,19 +162,19 @@ public class BufferUntilSubscriberTest {
         for (int i = 0; i < 32; i++) {
             bus.onNext(i);
         }
-        
+
         TestSubscriber<Integer> ts = TestSubscriber.create(0);
         ts.unsubscribe();
-        
+
         bus.subscribe(ts);
-        
+
         ts.assertNoTerminalEvent();
         ts.assertNoValues();
-        
+
         Assert.assertTrue(bus.state.queue.isEmpty());
-        
+
         bus.onNext(32);
-        
+
         Assert.assertTrue(bus.state.queue.isEmpty());
     }
 }

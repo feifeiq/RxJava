@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,14 +58,14 @@ public class BlockingOperatorToFutureTest {
             // we expect an exception since there are more than 1 element
             f.get();
         }
-        catch(ExecutionException e) {
+        catch (ExecutionException e) {
             throw e.getCause();
         }
     }
 
     @Test
     public void testToFutureWithException() {
-        Observable<String> obs = Observable.create(new OnSubscribe<String>() {
+        Observable<String> obs = Observable.unsafeCreate(new OnSubscribe<String>() {
 
             @Override
             public void call(Subscriber<? super String> observer) {
@@ -83,18 +83,18 @@ public class BlockingOperatorToFutureTest {
         }
     }
 
-    @Test(expected=CancellationException.class)
+    @Test(expected = CancellationException.class)
     public void testGetAfterCancel() throws Exception {
-        Observable<String> obs = Observable.create(new OperationNeverComplete<String>());
+        Observable<String> obs = Observable.unsafeCreate(new OperationNeverComplete<String>());
         Future<String> f = toFuture(obs);
         boolean cancelled = f.cancel(true);
         assertTrue(cancelled);  // because OperationNeverComplete never does
         f.get();                // Future.get() docs require this to throw
     }
 
-    @Test(expected=CancellationException.class)
+    @Test(expected = CancellationException.class)
     public void testGetWithTimeoutAfterCancel() throws Exception {
-        Observable<String> obs = Observable.create(new OperationNeverComplete<String>());
+        Observable<String> obs = Observable.unsafeCreate(new OperationNeverComplete<String>());
         Future<String> f = toFuture(obs);
         boolean cancelled = f.cancel(true);
         assertTrue(cancelled);  // because OperationNeverComplete never does
@@ -118,7 +118,7 @@ public class BlockingOperatorToFutureTest {
         try {
             f.get();
         }
-        catch(ExecutionException e) {
+        catch (ExecutionException e) {
             throw e.getCause();
         }
     }

@@ -33,7 +33,7 @@ import rx.subscriptions.*;
  * emits the items emitted by the most recently published of those Observables.
  * <p>
  * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/switchDo.png" alt="">
- * 
+ *
  * @param <T> the value type
  */
 public final class OperatorSwitch<T> implements Operator<T, Observable<? extends T>> {
@@ -62,7 +62,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
         return (OperatorSwitch<T>)Holder.INSTANCE;
     }
 
-    OperatorSwitch(boolean delayError) { 
+    OperatorSwitch(boolean delayError) {
         this.delayError = delayError;
     }
 
@@ -76,46 +76,44 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
 
     static final class SwitchSubscriber<T> extends Subscriber<Observable<? extends T>> {
         final Subscriber<? super T> child;
-        final SerialSubscription ssub;
+        final SerialSubscription serial;
         final boolean delayError;
         final AtomicLong index;
         final SpscLinkedArrayQueue<Object> queue;
-        final NotificationLite<T> nl;
 
         boolean emitting;
-        
+
         boolean missed;
-        
+
         long requested;
-        
+
         Producer producer;
-        
+
         volatile boolean mainDone;
 
         Throwable error;
-        
+
         boolean innerActive;
-        
+
         static final Throwable TERMINAL_ERROR = new Throwable("Terminal error");
 
         SwitchSubscriber(Subscriber<? super T> child, boolean delayError) {
             this.child = child;
-            this.ssub = new SerialSubscription();
+            this.serial = new SerialSubscription();
             this.delayError = delayError;
             this.index = new AtomicLong();
             this.queue = new SpscLinkedArrayQueue<Object>(RxRingBuffer.SIZE);
-            this.nl = NotificationLite.instance();
         }
-        
+
         void init() {
-            child.add(ssub);
+            child.add(serial);
             child.add(Subscriptions.create(new Action0() {
                 @Override
                 public void call() {
                     clearProducer();
                 }
             }));
-            child.setProducer(new Producer(){
+            child.setProducer(new Producer() {
 
                 @Override
                 public void request(long n) {
@@ -128,39 +126,39 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
                 }
             });
         }
-        
+
         void clearProducer() {
             synchronized (this) {
                 producer = null;
             }
         }
-        
+
         @Override
         public void onNext(Observable<? extends T> t) {
             long id = index.incrementAndGet();
-            
-            Subscription s = ssub.get();
+
+            Subscription s = serial.get();
             if (s != null) {
                 s.unsubscribe();
             }
-            
+
             InnerSubscriber<T> inner;
-            
+
             synchronized (this) {
                 inner = new InnerSubscriber<T>(id, this);
 
                 innerActive = true;
                 producer = null;
             }
-            ssub.set(inner);
-            
+            serial.set(inner);
+
             t.unsafeSubscribe(inner);
         }
 
         @Override
         public void onError(Throwable e) {
             boolean success;
-            
+
             synchronized (this) {
                 success = updateError(e);
             }
@@ -189,20 +187,20 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
             }
             return true;
         }
-        
+
         @Override
         public void onCompleted() {
             mainDone = true;
             drain();
         }
-        
+
         void emit(T value, InnerSubscriber<T> inner) {
             synchronized (this) {
                 if (index.get() != inner.id) {
                     return;
                 }
-                
-                queue.offer(inner, nl.next(value));
+
+                queue.offer(inner, NotificationLite.next(value));
             }
             drain();
         }
@@ -224,7 +222,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
                 pluginError(e);
             }
         }
-        
+
         void complete(long id) {
             synchronized (this) {
                 if (index.get() != id) {
@@ -239,7 +237,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
         void pluginError(Throwable e) {
             RxJavaHooks.onError(e);
         }
-        
+
         void innerProducer(Producer p, long id) {
             long n;
             synchronized (this) {
@@ -249,10 +247,10 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
                 n = requested;
                 producer = p;
             }
-            
+
             p.request(n);
         }
-        
+
         void childRequested(long n) {
             Producer p;
             synchronized (this) {
@@ -264,7 +262,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
             }
             drain();
         }
-        
+
         void drain() {
             boolean localInnerActive;
             long localRequested;
@@ -298,52 +296,52 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
                     }
 
                     boolean empty = localQueue.isEmpty();
-                    
-                    if (checkTerminated(localMainDone, localInnerActive, localError, 
+
+                    if (checkTerminated(localMainDone, localInnerActive, localError,
                             localQueue, localChild, empty)) {
                         return;
                     }
-                    
+
                     if (empty) {
                         break;
                     }
-                    
+
                     @SuppressWarnings("unchecked")
                     InnerSubscriber<T> inner = (InnerSubscriber<T>)localQueue.poll();
-                    T value = nl.getValue(localQueue.poll());
-                    
+                    T value = NotificationLite.getValue(localQueue.poll());
+
                     if (localIndex.get() == inner.id) {
                         localChild.onNext(value);
                         localEmission++;
                     }
                 }
-                
+
                 if (localEmission == localRequested) {
                     if (localChild.isUnsubscribed()) {
                         return;
                     }
-                    
-                    if (checkTerminated(mainDone, localInnerActive, localError, localQueue, 
+
+                    if (checkTerminated(mainDone, localInnerActive, localError, localQueue,
                             localChild, localQueue.isEmpty())) {
                         return;
                     }
                 }
-                
-                
+
+
                 synchronized (this) {
-                    
+
                     localRequested = requested;
                     if (localRequested != Long.MAX_VALUE) {
                         localRequested -= localEmission;
                         requested = localRequested;
                     }
-                    
+
                     if (!missed) {
                         emitting = false;
                         return;
                     }
                     missed = false;
-                    
+
                     localMainDone = mainDone;
                     localInnerActive = innerActive;
                     localError = error;
@@ -379,7 +377,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
             return false;
         }
     }
-    
+
     static final class InnerSubscriber<T> extends Subscriber<T> {
 
         private final long id;
@@ -390,7 +388,7 @@ public final class OperatorSwitch<T> implements Operator<T, Observable<? extends
             this.id = id;
             this.parent = parent;
         }
-        
+
         @Override
         public void setProducer(Producer p) {
             parent.innerProducer(p, id);

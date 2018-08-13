@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,7 +50,7 @@ public class OperatorSampleTest {
 
     @Test
     public void testSample() {
-        Observable<Long> source = Observable.create(new OnSubscribe<Long>() {
+        Observable<Long> source = Observable.unsafeCreate(new OnSubscribe<Long>() {
             @Override
             public void call(final Subscriber<? super Long> observer1) {
                 innerScheduler.schedule(new Action0() {
@@ -111,7 +111,7 @@ public class OperatorSampleTest {
 
     @Test
     public void sampleWithTimeEmitAndTerminate() {
-        Observable<Long> source = Observable.create(new OnSubscribe<Long>() {
+        Observable<Long> source = Observable.unsafeCreate(new OnSubscribe<Long>() {
             @Override
             public void call(final Subscriber<? super Long> observer1) {
                 innerScheduler.schedule(new Action0() {
@@ -303,7 +303,7 @@ public class OperatorSampleTest {
     @Test
     public void testSampleUnsubscribe() {
         final Subscription s = mock(Subscription.class);
-        Observable<Integer> o = Observable.create(
+        Observable<Integer> o = Observable.unsafeCreate(
                 new OnSubscribe<Integer>() {
                     @Override
                     public void call(Subscriber<? super Integer> subscriber) {
@@ -314,12 +314,12 @@ public class OperatorSampleTest {
         o.throttleLast(1, TimeUnit.MILLISECONDS).subscribe().unsubscribe();
         verify(s).unsubscribe();
     }
-    
+
     @Test
     public void testSampleOtherUnboundedIn() {
-        
+
         final long[] requested = { -1 };
-        
+
         PublishSubject.create()
         .doOnRequest(new Action1<Long>() {
             @Override
@@ -328,15 +328,15 @@ public class OperatorSampleTest {
             }
         })
         .sample(PublishSubject.create()).subscribe();
-        
+
         Assert.assertEquals(Long.MAX_VALUE, requested[0]);
     }
-    
+
     @Test
     public void testSampleTimedUnboundedIn() {
-        
+
         final long[] requested = { -1 };
-        
+
         PublishSubject.create()
         .doOnRequest(new Action1<Long>() {
             @Override
@@ -345,49 +345,49 @@ public class OperatorSampleTest {
             }
         })
         .sample(1, TimeUnit.SECONDS).subscribe().unsubscribe();
-        
+
         Assert.assertEquals(Long.MAX_VALUE, requested[0]);
     }
-    
+
     @Test
     public void dontUnsubscribeChild1() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        
+
         PublishSubject<Integer> source = PublishSubject.create();
-        
+
         PublishSubject<Integer> sampler = PublishSubject.create();
-        
+
         source.sample(sampler).unsafeSubscribe(ts);
-        
+
         source.onCompleted();
-        
+
         Assert.assertFalse("Source has subscribers?", source.hasObservers());
         Assert.assertFalse("Sampler has subscribers?", sampler.hasObservers());
-        
+
         Assert.assertFalse("TS unsubscribed?", ts.isUnsubscribed());
     }
 
     @Test
     public void dontUnsubscribeChild2() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        
+
         PublishSubject<Integer> source = PublishSubject.create();
-        
+
         PublishSubject<Integer> sampler = PublishSubject.create();
-        
+
         source.sample(sampler).unsafeSubscribe(ts);
-        
+
         sampler.onCompleted();
-        
+
         Assert.assertFalse("Source has subscribers?", source.hasObservers());
         Assert.assertFalse("Sampler has subscribers?", sampler.hasObservers());
-        
+
         Assert.assertFalse("TS unsubscribed?", ts.isUnsubscribed());
     }
-    
+
     @Test
     public void neverSetProducer() {
-        Observable<Integer> neverBackpressure = Observable.create(new OnSubscribe<Integer>() {
+        Observable<Integer> neverBackpressure = Observable.unsafeCreate(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> t) {
                 t.setProducer(new Producer() {
@@ -398,39 +398,39 @@ public class OperatorSampleTest {
                 });
             }
         });
-        
+
         final AtomicInteger count = new AtomicInteger();
-        
+
         neverBackpressure.sample(neverBackpressure).unsafeSubscribe(new Subscriber<Integer>() {
             @Override
             public void onNext(Integer t) {
                 // irrelevant
             }
-            
+
             @Override
             public void onError(Throwable e) {
                 // irrelevant
             }
-            
+
             @Override
             public void onCompleted() {
                 // irrelevant
             }
-            
+
             @Override
             public void setProducer(Producer p) {
                 count.incrementAndGet();
             }
         });
-        
+
         Assert.assertEquals(0, count.get());
     }
-    
+
     @Test
     public void unsubscribeMainAfterCompleted() {
         final AtomicBoolean unsubscribed = new AtomicBoolean();
-        
-        Observable<Integer> source = Observable.create(new OnSubscribe<Integer>() {
+
+        Observable<Integer> source = Observable.unsafeCreate(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> t) {
                 t.add(Subscriptions.create(new Action0() {
@@ -441,7 +441,7 @@ public class OperatorSampleTest {
                 }));
             }
         });
-        
+
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
             @Override
             public void onCompleted() {
@@ -452,22 +452,22 @@ public class OperatorSampleTest {
                 }
             }
         };
-        
+
         PublishSubject<Integer> sampler = PublishSubject.create();
-        
+
         source.sample(sampler).unsafeSubscribe(ts);
-        
+
         sampler.onCompleted();
-        
+
         ts.assertNoErrors();
         ts.assertCompleted();
     }
-    
+
     @Test
     public void unsubscribeSamplerAfterCompleted() {
         final AtomicBoolean unsubscribed = new AtomicBoolean();
-        
-        Observable<Integer> source = Observable.create(new OnSubscribe<Integer>() {
+
+        Observable<Integer> source = Observable.unsafeCreate(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> t) {
                 t.add(Subscriptions.create(new Action0() {
@@ -478,7 +478,7 @@ public class OperatorSampleTest {
                 }));
             }
         });
-        
+
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
             @Override
             public void onCompleted() {
@@ -489,13 +489,13 @@ public class OperatorSampleTest {
                 }
             }
         };
-        
+
         PublishSubject<Integer> sampled = PublishSubject.create();
-        
+
         sampled.sample(source).unsafeSubscribe(ts);
-        
+
         sampled.onCompleted();
-        
+
         ts.assertNoErrors();
         ts.assertCompleted();
     }

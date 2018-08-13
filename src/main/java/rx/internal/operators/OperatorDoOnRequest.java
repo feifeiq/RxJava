@@ -20,17 +20,17 @@ import rx.Observable.Operator;
 import rx.functions.Action1;
 
 /**
- * This operator modifies an {@link rx.Observable} so a given action is invoked when the 
+ * This operator modifies an {@link rx.Observable} so a given action is invoked when the
  * {@link rx.Producer} receives a request.
- * 
+ *
  * @param <T>
  *            The type of the elements in the {@link rx.Observable} that this operator modifies
  */
 public class OperatorDoOnRequest<T> implements Operator<T, T> {
 
-    final Action1<Long> request;
+    final Action1<? super Long> request;
 
-    public OperatorDoOnRequest(Action1<Long> request) {
+    public OperatorDoOnRequest(Action1<? super Long> request) {
         this.request = request;
     }
 

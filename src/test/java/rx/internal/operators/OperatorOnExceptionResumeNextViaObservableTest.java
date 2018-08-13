@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +35,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
     public void testResumeNextWithException() {
         // Trigger failure on second element
         TestObservable f = new TestObservable("one", "EXCEPTION", "two", "three");
-        Observable<String> w = Observable.create(f);
+        Observable<String> w = Observable.unsafeCreate(f);
         Observable<String> resume = Observable.just("twoResume", "threeResume");
         Observable<String> observable = w.onExceptionResumeNext(resume);
 
@@ -63,7 +63,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
     public void testResumeNextWithRuntimeException() {
         // Trigger failure on second element
         TestObservable f = new TestObservable("one", "RUNTIMEEXCEPTION", "two", "three");
-        Observable<String> w = Observable.create(f);
+        Observable<String> w = Observable.unsafeCreate(f);
         Observable<String> resume = Observable.just("twoResume", "threeResume");
         Observable<String> observable = w.onExceptionResumeNext(resume);
 
@@ -91,7 +91,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
     public void testThrowablePassesThru() {
         // Trigger failure on second element
         TestObservable f = new TestObservable("one", "THROWABLE", "two", "three");
-        Observable<String> w = Observable.create(f);
+        Observable<String> w = Observable.unsafeCreate(f);
         Observable<String> resume = Observable.just("twoResume", "threeResume");
         Observable<String> observable = w.onExceptionResumeNext(resume);
 
@@ -119,7 +119,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
     public void testErrorPassesThru() {
         // Trigger failure on second element
         TestObservable f = new TestObservable("one", "ON_OVERFLOW_ERROR", "two", "three");
-        Observable<String> w = Observable.create(f);
+        Observable<String> w = Observable.unsafeCreate(f);
         Observable<String> resume = Observable.just("twoResume", "threeResume");
         Observable<String> observable = w.onExceptionResumeNext(resume);
 
@@ -149,15 +149,16 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         Observable<String> w = Observable.just("one", "fail", "two", "three", "fail");
         // Resume Observable is async
         TestObservable f = new TestObservable("twoResume", "threeResume");
-        Observable<String> resume = Observable.create(f);
+        Observable<String> resume = Observable.unsafeCreate(f);
 
         // Introduce map function that fails intermittently (Map does not prevent this when the observer is a
         //  rx.operator incl onErrorResumeNextViaObservable)
         w = w.map(new Func1<String, String>() {
             @Override
             public String call(String s) {
-                if ("fail".equals(s))
+                if ("fail".equals(s)) {
                     throw new RuntimeException("Forced Failure");
+                }
                 System.out.println("BadMapper:" + s);
                 return s;
             }
@@ -186,8 +187,8 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         verify(observer, Mockito.never()).onError(any(Throwable.class));
         verify(observer, times(1)).onCompleted();
     }
-    
-    
+
+
     @Test
     public void testBackpressure() {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
@@ -195,7 +196,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
                 .onExceptionResumeNext(Observable.just(1))
                 .observeOn(Schedulers.computation())
                 .map(new Func1<Integer, Integer>() {
-                    int c = 0;
+                    int c;
 
                     @Override
                     public Integer call(Integer t1) {
@@ -220,7 +221,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
     private static class TestObservable implements Observable.OnSubscribe<String> {
 
         final String[] values;
-        Thread t = null;
+        Thread t;
 
         public TestObservable(String... values) {
             this.values = values;
@@ -236,14 +237,15 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
                     try {
                         System.out.println("running TestObservable thread");
                         for (String s : values) {
-                            if ("EXCEPTION".equals(s))
+                            if ("EXCEPTION".equals(s)) {
                                 throw new Exception("Forced Exception");
-                            else if ("RUNTIMEEXCEPTION".equals(s))
+                            } else if ("RUNTIMEEXCEPTION".equals(s)) {
                                 throw new RuntimeException("Forced RuntimeException");
-                            else if ("ON_OVERFLOW_ERROR".equals(s))
+                            } else if ("ON_OVERFLOW_ERROR".equals(s)) {
                                 throw new Error("Forced Error");
-                            else if ("THROWABLE".equals(s))
+                            } else if ("THROWABLE".equals(s)) {
                                 throw new Throwable("Forced Throwable");
+                            }
                             System.out.println("TestObservable onNext: " + s);
                             observer.onNext(s);
                         }
@@ -261,17 +263,17 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
             System.out.println("done starting TestObservable thread");
         }
     }
-    
+
     @Test
     public void normalBackpressure() {
         TestSubscriber<Integer> ts = TestSubscriber.create(0);
-        
+
         PublishSubject<Integer> ps = PublishSubject.create();
-        
+
         ps.onExceptionResumeNext(Observable.range(3, 2)).subscribe(ts);
-        
+
         ts.requestMore(2);
-        
+
         ps.onNext(1);
         ps.onNext(2);
         ps.onError(new TestException("Forced failure"));
@@ -281,7 +283,7 @@ public class OperatorOnExceptionResumeNextViaObservableTest {
         ts.assertNotCompleted();
 
         ts.requestMore(2);
-        
+
         ts.assertValues(1, 2, 3, 4);
         ts.assertNoErrors();
         ts.assertCompleted();

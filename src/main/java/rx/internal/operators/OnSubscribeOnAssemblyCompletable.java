@@ -1,12 +1,12 @@
 /**
  * Copyright 2016 Netflix, Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,6 @@
 package rx.internal.operators;
 
 import rx.*;
-import rx.Completable.CompletableSubscriber;
 import rx.exceptions.AssemblyStackTraceException;
 
 /**
@@ -26,10 +25,10 @@ import rx.exceptions.AssemblyStackTraceException;
  *
  * @param <T> the value type
  */
-public final class OnSubscribeOnAssemblyCompletable<T> implements Completable.CompletableOnSubscribe {
+public final class OnSubscribeOnAssemblyCompletable<T> implements Completable.OnSubscribe {
 
-    final Completable.CompletableOnSubscribe source;
-    
+    final Completable.OnSubscribe source;
+
     final String stacktrace;
 
     /**
@@ -37,23 +36,23 @@ public final class OnSubscribeOnAssemblyCompletable<T> implements Completable.Co
      * stacktrace instead of the sanitized version.
      */
     public static volatile boolean fullStackTrace;
-    
-    public OnSubscribeOnAssemblyCompletable(Completable.CompletableOnSubscribe source) {
+
+    public OnSubscribeOnAssemblyCompletable(Completable.OnSubscribe source) {
         this.source = source;
         this.stacktrace = OnSubscribeOnAssembly.createStacktrace();
     }
-    
+
     @Override
-    public void call(Completable.CompletableSubscriber t) {
+    public void call(CompletableSubscriber t) {
         source.call(new OnAssemblyCompletableSubscriber(t, stacktrace));
     }
-    
+
     static final class OnAssemblyCompletableSubscriber implements CompletableSubscriber {
 
         final CompletableSubscriber actual;
-        
+
         final String stacktrace;
-        
+
         public OnAssemblyCompletableSubscriber(CompletableSubscriber actual, String stacktrace) {
             this.actual = actual;
             this.stacktrace = stacktrace;
@@ -63,7 +62,7 @@ public final class OnSubscribeOnAssemblyCompletable<T> implements Completable.Co
         public void onSubscribe(Subscription d) {
             actual.onSubscribe(d);
         }
-        
+
         @Override
         public void onCompleted() {
             actual.onCompleted();
@@ -71,7 +70,7 @@ public final class OnSubscribeOnAssemblyCompletable<T> implements Completable.Co
 
         @Override
         public void onError(Throwable e) {
-            e = new AssemblyStackTraceException(stacktrace, e);
+            new AssemblyStackTraceException(stacktrace).attachTo(e);
             actual.onError(e);
         }
     }

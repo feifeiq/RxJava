@@ -2,15 +2,15 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * Original License: https://github.com/JCTools/JCTools/blob/master/LICENSE
  * Original location: https://github.com/JCTools/JCTools/blob/master/jctools-core/src/main/java/org/jctools/queues/SpscUnboundedArrayQueue.java
  */
@@ -50,7 +50,7 @@ abstract class SpscUnboundedArrayQueueConsumerField<E> extends SpscUnboundedArra
 
 @SuppressAnimalSniffer
 public class SpscUnboundedArrayQueue<E> extends SpscUnboundedArrayQueueConsumerField<E>
-    implements QueueProgressIndicators{
+    implements QueueProgressIndicators {
     static final int MAX_LOOK_AHEAD_STEP = Integer.getInteger("jctools.spsc.max.lookahead.step", 4096);
     private final static long P_INDEX_OFFSET;
     private final static long C_INDEX_OFFSET;
@@ -97,7 +97,7 @@ public class SpscUnboundedArrayQueue<E> extends SpscUnboundedArrayQueueConsumerF
         consumerBuffer = buffer;
         consumerMask = mask;
         producerLookAhead = mask - 1; // we know it's all empty to start with
-        soProducerIndex(0l);
+        soProducerIndex(0L);
     }
 
     @Override
@@ -126,7 +126,7 @@ public class SpscUnboundedArrayQueue<E> extends SpscUnboundedArrayQueueConsumerF
             final int lookAheadStep = producerLookAheadStep;
             // go around the buffer or resize if full (unless we hit max capacity)
             long lookAheadElementOffset = calcWrappedOffset(index + lookAheadStep, mask);
-            if (null == lvElement(buffer, lookAheadElementOffset)) {// LoadLoad
+            if (null == lvElement(buffer, lookAheadElementOffset)) { // LoadLoad
                 producerLookAhead = index + lookAheadStep - 1; // joy, there's plenty of room
                 return writeToQueue(buffer, e, index, offset);
             } else if (null != lvElement(buffer, calcWrappedOffset(index + 1, mask))) { // buffer is not full
@@ -159,11 +159,11 @@ public class SpscUnboundedArrayQueue<E> extends SpscUnboundedArrayQueueConsumerF
     }
 
     private void soNext(E[] curr, E[] next) {
-        soElement(curr, calcDirectOffset(curr.length -1), next);
+        soElement(curr, calcDirectOffset(curr.length - 1), next);
     }
     @SuppressWarnings("unchecked")
     private E[] lvNext(E[] curr) {
-        return (E[]) lvElement(curr, calcDirectOffset(curr.length -1));
+        return (E[]) lvElement(curr, calcDirectOffset(curr.length - 1));
     }
     /**
      * {@inheritDoc}
@@ -284,12 +284,12 @@ public class SpscUnboundedArrayQueue<E> extends SpscUnboundedArrayQueueConsumerF
     private static <E> Object lvElement(E[] buffer, long offset) {
         return UNSAFE.getObjectVolatile(buffer, offset);
     }
-    
+
     @Override
     public long currentProducerIndex() {
         return lvProducerIndex();
     }
-    
+
     @Override
     public long currentConsumerIndex() {
         return lvConsumerIndex();

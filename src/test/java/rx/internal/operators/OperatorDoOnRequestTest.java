@@ -27,6 +27,7 @@ import rx.*;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.functions.*;
+import rx.observers.TestSubscriber;
 
 public class OperatorDoOnRequestTest {
 
@@ -89,16 +90,16 @@ public class OperatorDoOnRequestTest {
                 });
         assertEquals(Arrays.asList(3L,1L,2L,3L,4L,5L), requests);
     }
-    
+
     @Test
     public void dontRequestIfDownstreamRequestsLate() {
         final List<Long> requested = new ArrayList<Long>();
 
         Action1<Long> empty = Actions.empty();
-        
+
         final AtomicReference<Producer> producer = new AtomicReference<Producer>();
-        
-        Observable.create(new OnSubscribe<Integer>() {
+
+        Observable.unsafeCreate(new OnSubscribe<Integer>() {
             @Override
             public void call(Subscriber<? super Integer> t) {
                 t.setProducer(new Producer() {
@@ -111,25 +112,25 @@ public class OperatorDoOnRequestTest {
         }).doOnRequest(empty).subscribe(new Subscriber<Object>() {
             @Override
             public void onNext(Object t) {
-                
+
             }
-            
+
             @Override
             public void onError(Throwable e) {
-                
+
             }
-            
+
             @Override
             public void onCompleted() {
-                
+
             }
-            
+
             @Override
             public void setProducer(Producer p) {
                 producer.set(p);
             }
         });
-        
+
         producer.get().request(1);
 
         int s = requested.size();
@@ -139,5 +140,20 @@ public class OperatorDoOnRequestTest {
         } else {
             Assert.assertEquals(Arrays.asList(0L, 1L), requested);
         }
+    }
+
+    @Test
+    public void canCallDoOnRequestWithActionOfTypeObject() {
+        final AtomicReference<Boolean> r = new AtomicReference<Boolean>();
+        TestSubscriber<String> ts = TestSubscriber.create();
+        Observable.just("a").doOnRequest(
+            new Action1<Object>() {
+
+                @Override
+                public void call(Object v) {
+                    r.set(true);
+                }
+            }).subscribe(ts);
+        assertTrue(r.get());
     }
 }
